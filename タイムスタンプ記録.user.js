@@ -83,7 +83,7 @@
 
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
-            showCopySuccessMessage(text);  // 顯示成功訊息
+            showCopySuccessMessage(text);
         }).catch(err => {
             console.error('コピーに失敗しました', err);
         });
@@ -91,7 +91,7 @@
 
     function deleteTimestamp(index) {
         timestamps.splice(index, 1);
-        saveTimestamps();  // 儲存更新後的時間戳記
+        saveTimestamps();
         updateTimestampList();
     }
 
@@ -211,7 +211,7 @@
         document.body.appendChild(messageBox);
 
         setTimeout(() => {
-            messageBox.style.display = "none";  // 訊息顯示幾秒後消失
+            messageBox.style.display = "none";
         }, 3000);
     }
 
