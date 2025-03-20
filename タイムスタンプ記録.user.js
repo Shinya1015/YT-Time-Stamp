@@ -15,6 +15,19 @@
     let offsetX = 0, offsetY = 0;
     let container, btn;
 
+    // 初始化，從 localStorage 載入已儲存的時間戳記
+    function loadTimestamps() {
+        let storedTimestamps = localStorage.getItem('timestamps');
+        if (storedTimestamps) {
+            timestamps = JSON.parse(storedTimestamps);
+        }
+    }
+
+    // 儲存時間戳記到 localStorage
+    function saveTimestamps() {
+        localStorage.setItem('timestamps', JSON.stringify(timestamps));
+    }
+
     function recordTimestamp() {
         let video = document.querySelector('video');
         if (video) {
@@ -24,9 +37,10 @@
             let seconds = Math.floor(currentTime % 60);
             let formattedTimestamp = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             timestamps.push(formattedTimestamp);
+            saveTimestamps();  // 儲存時間戳記
             updateTimestampList();
         } else {
-            alert("動画が見つかりませんでした。ページをリフレッシュして再試行してください！");
+            showErrorMessage("動画が見つかりませんでした。ページをリフレッシュして再試行してください！");
         }
     }
 
@@ -37,7 +51,7 @@
                 list.removeChild(list.firstChild);
             }
 
-            timestamps.forEach((t, index) => {
+            timestamps.forEach((t) => {
                 let listItem = document.createElement("li");
 
                 let copyButton = document.createElement("button");
@@ -55,7 +69,7 @@
                 deleteButton.style.fontSize = "12px";
                 deleteButton.style.padding = "4px 6px";
                 deleteButton.onclick = function() {
-                    deleteTimestamp(index);
+                    deleteTimestamp(t);
                 };
 
                 listItem.appendChild(copyButton);
@@ -67,14 +81,15 @@
 
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
-            alert(`タイムスタンプをコピーしました: ${text}`);
+            showCopySuccessMessage(text);  // 顯示成功訊息
         }).catch(err => {
             console.error('コピーに失敗しました', err);
         });
     }
 
-    function deleteTimestamp(index) {
-        timestamps.splice(index, 1);
+    function deleteTimestamp(timestamp) {
+        timestamps = timestamps.filter(t => t !== timestamp);
+        saveTimestamps();  // 儲存更新後的時間戳記
         updateTimestampList();
     }
 
@@ -177,7 +192,26 @@
         copyToClipboard(allTimestamps);
     }
 
-    window.onload = function() {
-        setTimeout(addUI, 3000);
-    };
+    function showCopySuccessMessage(text) {
+        let messageBox = document.createElement("div");
+        messageBox.textContent = `タイムスタンプをコピーしました: ${text}`;
+        messageBox.style.position = "fixed";
+        messageBox.style.top = "10px";
+        messageBox.style.left = "50%";
+        messageBox.style.transform = "translateX(-50%)";
+        messageBox.style.backgroundColor = "#4CAF50";
+        messageBox.style.color = "white";
+        messageBox.style.padding = "10px 20px";
+        messageBox.style.borderRadius = "5px";
+        messageBox.style.fontSize = "14px";
+        messageBox.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+        messageBox.style.zIndex = "9999";
+        document.body.appendChild(messageBox);
+        setTimeout(() => {
+            document.body.removeChild(messageBox);
+        }, 2000);  // 2秒後隱藏
+    }
+
+    loadTimestamps();  // 載入儲存的時間戳記
+    addUI();
 })();
