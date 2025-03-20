@@ -35,7 +35,7 @@
             let hours = Math.floor(currentTime / 3600);
             let minutes = Math.floor((currentTime % 3600) / 60);
             let seconds = Math.floor(currentTime % 60);
-            let formattedTimestamp = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            let formattedTimestamp = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             timestamps.push(formattedTimestamp);
             saveTimestamps();  // 儲存時間戳記
             updateTimestampList();
@@ -51,16 +51,18 @@
                 list.removeChild(list.firstChild);
             }
 
-            timestamps.forEach((t) => {
+            timestamps.forEach((t, index) => {
                 let listItem = document.createElement("li");
 
+                let displayText = `${t}`; // [01]改成直接顯示時間戳記
+
                 let copyButton = document.createElement("button");
-                copyButton.textContent = t;
+                copyButton.textContent = displayText;
                 copyButton.classList.add("copy-btn");
                 copyButton.style.fontSize = "12px";
                 copyButton.style.padding = "4px 6px";
                 copyButton.onclick = function() {
-                    copyToClipboard(t);
+                    copyToClipboard(displayText);
                 };
 
                 let deleteButton = document.createElement("button");
@@ -69,7 +71,7 @@
                 deleteButton.style.fontSize = "12px";
                 deleteButton.style.padding = "4px 6px";
                 deleteButton.onclick = function() {
-                    deleteTimestamp(t);
+                    deleteTimestamp(index);
                 };
 
                 listItem.appendChild(copyButton);
@@ -87,8 +89,8 @@
         });
     }
 
-    function deleteTimestamp(timestamp) {
-        timestamps = timestamps.filter(t => t !== timestamp);
+    function deleteTimestamp(index) {
+        timestamps.splice(index, 1);
         saveTimestamps();  // 儲存更新後的時間戳記
         updateTimestampList();
     }
@@ -188,7 +190,7 @@
     }
 
     function copyAllTimestamps() {
-        let allTimestamps = timestamps.join("\n");
+        let allTimestamps = timestamps.map((t, index) => `${t}`).join("\n");
         copyToClipboard(allTimestamps);
     }
 
@@ -207,11 +209,12 @@
         messageBox.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
         messageBox.style.zIndex = "9999";
         document.body.appendChild(messageBox);
+
         setTimeout(() => {
-            document.body.removeChild(messageBox);
-        }, 2000);  // 2秒後隱藏
+            messageBox.style.display = "none";  // 訊息顯示幾秒後消失
+        }, 3000);
     }
 
-    loadTimestamps();  // 載入儲存的時間戳記
+    loadTimestamps();
     addUI();
 })();
