@@ -15,7 +15,6 @@
     let offsetX = 0, offsetY = 0;
     let container, btn;
 
-    // 初始化，從 localStorage 載入已儲存的時間戳記
     function loadTimestamps() {
         let storedTimestamps = localStorage.getItem('timestamps');
         if (storedTimestamps) {
@@ -23,7 +22,6 @@
         }
     }
 
-    // 儲存時間戳記到 localStorage
     function saveTimestamps() {
         localStorage.setItem('timestamps', JSON.stringify(timestamps));
     }
@@ -37,7 +35,7 @@
             let seconds = Math.floor(currentTime % 60);
             let formattedTimestamp = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             timestamps.push(formattedTimestamp);
-            saveTimestamps();  // 儲存時間戳記
+            saveTimestamps();
             updateTimestampList();
         } else {
             showErrorMessage("動画が見つかりませんでした。ページをリフレッシュして再試行してください！");
@@ -54,7 +52,7 @@
             timestamps.forEach((t, index) => {
                 let listItem = document.createElement("li");
 
-                let displayText = `${t}`; // [01]改成直接顯示時間戳記
+                let displayText = `${t}`;
 
                 let copyButton = document.createElement("button");
                 copyButton.textContent = displayText;
