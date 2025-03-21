@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      6.5
+// @version      6.6
 // @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
@@ -103,6 +103,7 @@ copyButton.addEventListener("mouseout", function() {
             deleteButton.style.background = "#FF6B6B";
             deleteButton.style.color = "black";
             deleteButton.style.border = "1px solid #D63A3A";
+            deleteButton.style.fontWeight = "bold";
             deleteButton.onclick = function() {
                 deleteTimestamp(index);
             };
@@ -115,7 +116,7 @@ copyButton.addEventListener("mouseout", function() {
             editButton.style.background = "#FFDD57";
             editButton.style.color = "black";
             editButton.style.border = "1px solid #F39C12";
-
+            editButton.style.fontWeight = "bold";
             editButton.onclick = function() {
                 editTimestamp(index);
             };
@@ -330,6 +331,7 @@ function makeDraggable(element) {
         copyAllButton.style.background = "linear-gradient(to bottom, #A8E6A0, #52C41A)";
         copyAllButton.style.color = "black";
         copyAllButton.style.border = "1px solid #3A8F12";
+        copyAllButton.style.fontWeight = "bold";
         copyAllButton.onclick = function() {
         copyAllTimestamps();
         };
@@ -342,6 +344,7 @@ function makeDraggable(element) {
         sortButton.style.background = "linear-gradient(to bottom, #FFB6C1, #FF69B4)";
         sortButton.style.color = "black";
         sortButton.style.border = "1px solid #FF1493";
+        sortButton.style.fontWeight = "bold";
         sortButton.onclick = function() {
             toggleSortOrder();
         };
