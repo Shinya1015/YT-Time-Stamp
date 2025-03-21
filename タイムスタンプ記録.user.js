@@ -188,7 +188,7 @@ function showCustomCopySuccessMessage(text) {
         btn.style.pointerEvents = "auto";
         btn.style.zIndex = "101";
         btn.style.position = "relative";
-        btn.style.top = "-1px";  // 向上移动 10px
+        btn.style.top = "-1px";
         btn.onclick = recordTimestamp;
         container.appendChild(btn);
 
@@ -264,7 +264,7 @@ function showCustomCopySuccessMessage(text) {
 
         hideButton = document.createElement("button");
         hideButton.textContent = "隠す";
-        hideButton.style.padding = "10px 70px";
+        hideButton.style.padding = "10px 10px";
         hideButton.style.background = "blue";
         hideButton.style.color = "white";
         hideButton.style.border = "none";
@@ -303,7 +303,8 @@ function showCustomCopySuccessMessage(text) {
                 element.style.visibility = "hidden";
             }
         });
-        hideButton.textContent = "表示";
+          hideButton.textContent = "表示";
+          hideButton.style.backgroundColor = "red";
     } else {
         container.querySelectorAll('*').forEach(element => {
             if (element !== hideButton) {
@@ -311,6 +312,7 @@ function showCustomCopySuccessMessage(text) {
             }
         });
         hideButton.textContent = "隠す";
+        hideButton.style.backgroundColor = "blue";
     }
 }
 
