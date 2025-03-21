@@ -2,7 +2,7 @@
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
 // @version      6.1
-// @description  タイムスタンプを記録、並べ替え機能追加
+// @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
 // ==/UserScript==
@@ -115,7 +115,6 @@ function showCustomCopySuccessMessage(text) {
     messageBox.style.boxShadow = "2px 2px 8px rgba(0, 0, 0, 0.2)";
     messageBox.style.zIndex = "9999";
 
-    // 自动隐藏通知
     setTimeout(() => {
         messageBox.style.opacity = "0";
         setTimeout(() => {
@@ -303,7 +302,6 @@ function showCustomCopySuccessMessage(text) {
         });
         hideButton.textContent = "表示";
     } else {
-        // 恢复显示所有元素
         container.querySelectorAll('*').forEach(element => {
             if (element !== hideButton) {
                 element.style.visibility = "visible";
@@ -323,7 +321,7 @@ function showCustomCopySuccessMessage(text) {
     }
 
     function showErrorMessage(message) {
-        alert(message); // Display error message using alert
+        alert(message);
     }
 
 function showCopySuccessMessage(text) {
@@ -341,7 +339,6 @@ function showCopySuccessMessage(text) {
     messageBox.style.boxShadow = "2px 2px 8px rgba(0, 0, 0, 0.2)";
     messageBox.style.zIndex = "9999";
 
-    // 自动隐藏通知
     setTimeout(() => {
         messageBox.style.opacity = "0";
         setTimeout(() => {
