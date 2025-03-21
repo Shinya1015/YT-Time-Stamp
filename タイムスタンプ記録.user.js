@@ -385,7 +385,7 @@ function makeDraggable(element) {
 
         hideButton = document.createElement("button");
         hideButton.textContent = "隠す";
-        hideButton.style.padding = "10px 10px";
+        hideButton.style.padding = "6px 6px";
         hideButton.style.background = "blue";
         hideButton.style.color = "white";
         hideButton.style.border = "none";
