@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      6.3
+// @version      6.5
 // @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
