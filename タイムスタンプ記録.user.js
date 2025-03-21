@@ -72,15 +72,15 @@ function updateTimestampList() {
             copyButton.textContent = displayText;
             copyButton.classList.add("copy-btn");
             copyButton.style.fontSize = "14px";
-            copyButton.style.padding = "8px 14px";
+            copyButton.style.padding = "8px 18px";
             copyButton.style.marginRight = "6px";
-copyButton.style.background = "linear-gradient(to bottom, #A3C9D9, #B0D1E5)";
-copyButton.style.color = "black";
-copyButton.style.fontWeight = "bold";
-copyButton.style.border = "1px solid #9BBED4";
-copyButton.addEventListener("mouseover", function() {
-    copyButton.style.background = "linear-gradient(to bottom, #D1E6F1, #C5D9E8)";
-    copyButton.style.border = "1px solid #A6C6D6";
+            copyButton.style.background = "linear-gradient(to bottom, #A3C9D9, #B0D1E5)";
+            copyButton.style.color = "black";
+            copyButton.style.fontWeight = "bold";
+            copyButton.style.border = "1px solid #9BBED4";
+            copyButton.addEventListener("mouseover", function() {
+            copyButton.style.background = "linear-gradient(to bottom, #D1E6F1, #C5D9E8)";
+            copyButton.style.border = "1px solid #A6C6D6";
 });
 
 
@@ -331,7 +331,7 @@ function makeDraggable(element) {
         copyAllButton.style.color = "black";
         copyAllButton.style.border = "1px solid #3A8F12";
         copyAllButton.onclick = function() {
-            copyAllTimestamps();
+        copyAllTimestamps();
         };
       let sortButton = document.createElement("button");
         sortButton.textContent = "並べ替え";
