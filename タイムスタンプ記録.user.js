@@ -15,8 +15,8 @@
     let offsetX = 0, offsetY = 0;
     let container, btn, lockButton, hideButton;
     let isLocked = false;
-    let isAscending = false; // 默认按升序排列
-    let isHidden = false;  // 添加一个隐藏状态
+    let isAscending = false;
+    let isHidden = false;
 
     function loadTimestamps() {
         let storedTimestamps = localStorage.getItem('timestamps');
@@ -37,7 +37,7 @@
             let minutes = Math.floor((currentTime % 3600) / 60);
             let seconds = Math.floor(currentTime % 60);
             let formattedTimestamp = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} [${(timestamps.length + 1).toString().padStart(2, '0')}]`;
-            timestamps.unshift(formattedTimestamp); // 插入新的时间戳到数组前面
+            timestamps.unshift(formattedTimestamp);
             saveTimestamps();
             updateTimestampList();
         } else {
@@ -52,11 +52,11 @@
                 list.removeChild(list.firstChild);
             }
 
-            // 按照升序或降序排序时间戳
+
             if (isAscending) {
-                timestamps.sort(); // 默认按升序排列
+                timestamps.sort();
             } else {
-                timestamps.sort().reverse(); // 反向排序
+                timestamps.sort().reverse();
             }
 
             timestamps.forEach((t, index) => {
@@ -68,7 +68,7 @@
                 copyButton.textContent = displayText;
                 copyButton.classList.add("copy-btn");
                 copyButton.style.fontSize = "14px";
-                copyButton.style.padding = "12px 48px"; // 增加按钮宽度
+                copyButton.style.padding = "12px 48px";
                 copyButton.onclick = function() {
                     copyToClipboard(displayText);
                 };
@@ -77,7 +77,7 @@
                 deleteButton.textContent = "削除";
                 deleteButton.classList.add("delete-btn");
                 deleteButton.style.fontSize = "12px";
-                deleteButton.style.padding = "12px 30px"; // 增加按钮宽度
+                deleteButton.style.padding = "12px 30px";
                 deleteButton.onclick = function() {
                     deleteTimestamp(index);
                 };
@@ -96,7 +96,7 @@ function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
         showCustomCopySuccessMessage(text);
     }).catch(err => {
-        console.error('コピーに失敗しました', err);  // 如果复制失败，输出错误信息
+        console.error('コピーに失敗しました', err);
     });
 }
 
@@ -108,7 +108,7 @@ function showCustomCopySuccessMessage(text) {
     messageBox.style.left = "50%";
     messageBox.style.transform = "translateX(-50%)";
     messageBox.style.padding = "10px 20px";
-    messageBox.style.backgroundColor = "#28a745";  // 成功绿色背景
+    messageBox.style.backgroundColor = "#28a745";
     messageBox.style.color = "white";
     messageBox.style.fontSize = "14px";
     messageBox.style.borderRadius = "5px";
@@ -120,8 +120,8 @@ function showCustomCopySuccessMessage(text) {
         messageBox.style.opacity = "0";
         setTimeout(() => {
             messageBox.remove();
-        }, 500);  // 延迟时间与动画效果匹配
-    }, 2000);  // 通知显示2秒
+        }, 500);
+    }, 2000);
 
     document.body.appendChild(messageBox);
 }
@@ -167,8 +167,8 @@ function showCustomCopySuccessMessage(text) {
         container = document.createElement("div");
         container.style.position = "fixed";
         container.style.top = "500px";
-        container.style.left = "380px";  // Adjusted position to the left side
-        container.style.zIndex = "9999"; // Ensure it's on top of other elements
+        container.style.left = "380px";
+        container.style.zIndex = "9999";
         container.style.display = "flex";
         container.style.flexDirection = "column";
         container.style.alignItems = "center";
@@ -199,7 +199,7 @@ function showCustomCopySuccessMessage(text) {
         listContainer.style.overflowY = "auto";
         listContainer.style.zIndex = "9999";
         listContainer.style.pointerEvents = "auto";
-        listContainer.style.width = "300px"; // 设置固定宽度，确保框框大小不变
+        listContainer.style.width = "300px";
 
         let heading = document.createElement("h3");
         heading.textContent = "タイムスタンプ";
@@ -209,18 +209,17 @@ function showCustomCopySuccessMessage(text) {
         let copyAllButton = document.createElement("button");
         copyAllButton.textContent = "全部コピー";
         copyAllButton.style.marginLeft = "6px";
-        copyAllButton.style.padding = "12px 12px";  // 调整按钮宽度
+        copyAllButton.style.padding = "12px 12px";
         copyAllButton.style.fontSize = "10px";
         copyAllButton.classList.add("no-drag");
         copyAllButton.onclick = function() {
             copyAllTimestamps();
         };
 
-        // 排序按钮
         let sortButton = document.createElement("button");
         sortButton.textContent = "並べ替え";
         sortButton.style.marginLeft = "8px";
-        sortButton.style.padding = "12px 12px";  // 调整按钮宽度
+        sortButton.style.padding = "12px 12px";
         sortButton.style.fontSize = "10px";
         sortButton.classList.add("no-drag");
         sortButton.onclick = function() {
@@ -232,15 +231,15 @@ function showCustomCopySuccessMessage(text) {
         });
 
         heading.appendChild(copyAllButton);
-        heading.appendChild(sortButton); // 排序按钮添加到标题栏
+        heading.appendChild(sortButton);
         listContainer.appendChild(heading);
 
         let ul = document.createElement("ul");
         ul.id = "timestamp-list";
-        ul.style.listStyleType = "none"; // 去掉列表的默认项目符号
+        ul.style.listStyleType = "none";
         ul.style.padding = "0";
         ul.style.margin = "0";
-        ul.style.textAlign = "center"; // 让时间戳居中显示
+        ul.style.textAlign = "center";
         listContainer.appendChild(ul);
         container.appendChild(listContainer);
 
@@ -261,7 +260,6 @@ function showCustomCopySuccessMessage(text) {
         };
         container.appendChild(lockButton);
 
-        // 隐藏按钮
         hideButton = document.createElement("button");
         hideButton.textContent = "隠す";
         hideButton.style.padding = "10px 70px";
@@ -291,28 +289,27 @@ function showCustomCopySuccessMessage(text) {
     }
 
     function toggleSortOrder() {
-        isAscending = !isAscending; // 切换排序顺序
+        isAscending = !isAscending;
         updateTimestampList();
     }
 
    function toggleVisibility() {
     isHidden = !isHidden;
     if (isHidden) {
-        // 隐藏除隐藏按钮之外的所有元素，并保持布局
         container.querySelectorAll('*').forEach(element => {
             if (element !== hideButton) {
-                element.style.visibility = "hidden"; // 使用visibility隐藏元素，保持布局
+                element.style.visibility = "hidden";
             }
         });
-        hideButton.textContent = "表示"; // 更改为"表示"以便显示
+        hideButton.textContent = "表示";
     } else {
         // 恢复显示所有元素
         container.querySelectorAll('*').forEach(element => {
             if (element !== hideButton) {
-                element.style.visibility = "visible"; // 恢复显示
+                element.style.visibility = "visible";
             }
         });
-        hideButton.textContent = "隠す"; // 恢复为"隠す"
+        hideButton.textContent = "隠す";
     }
 }
 
@@ -337,7 +334,7 @@ function showCopySuccessMessage(text) {
     messageBox.style.left = "50%";
     messageBox.style.transform = "translateX(-50%)";
     messageBox.style.padding = "10px 20px";
-    messageBox.style.backgroundColor = "#28a745";  // 成功绿色背景
+    messageBox.style.backgroundColor = "#28a745";
     messageBox.style.color = "white";
     messageBox.style.fontSize = "14px";
     messageBox.style.borderRadius = "5px";
@@ -349,8 +346,8 @@ function showCopySuccessMessage(text) {
         messageBox.style.opacity = "0";
         setTimeout(() => {
             messageBox.remove();
-        }, 500);  // 延迟时间与动画效果匹配
-    }, 2000);  // 通知显示2秒
+        }, 500);
+    }, 2000);
 
     document.body.appendChild(messageBox);
 }
