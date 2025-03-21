@@ -302,7 +302,7 @@ function showCustomCopySuccessMessage(text) {
                 element.style.visibility = "visible";
             }
         });
-        hideButton.textContent = "隠す";"
+        hideButton.textContent = "隠す";
     }
 }
 
