@@ -63,7 +63,7 @@ function updateTimestampList() {
             listItem.style.alignItems = "center";
             listItem.style.marginBottom = "4px";
             listItem.style.padding = "2px";
-            listItem.style.maxWidth = "250px";
+            listItem.style.maxWidth = "230px";
             listItem.style.width = "auto";
             listItem.style.overflow = "hidden";
 
