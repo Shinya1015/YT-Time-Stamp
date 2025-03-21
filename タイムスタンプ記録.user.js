@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      6.2
+// @version      6.3
 // @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
@@ -74,6 +74,22 @@ function updateTimestampList() {
             copyButton.style.fontSize = "14px";
             copyButton.style.padding = "8px 14px";
             copyButton.style.marginRight = "6px";
+copyButton.style.background = "linear-gradient(to bottom, #A3C9D9, #B0D1E5)";
+copyButton.style.color = "black";
+copyButton.style.fontWeight = "bold";
+copyButton.style.border = "1px solid #9BBED4";
+copyButton.addEventListener("mouseover", function() {
+    copyButton.style.background = "linear-gradient(to bottom, #D1E6F1, #C5D9E8)";
+    copyButton.style.border = "1px solid #A6C6D6";
+});
+
+
+copyButton.addEventListener("mouseout", function() {
+    copyButton.style.background = "linear-gradient(to bottom, #A3C9D9, #B0D1E5)";
+    copyButton.style.border = "1px solid #9BBED4";
+});
+
+
             copyButton.onclick = function() {
                 copyToClipboard(displayText);
             };
@@ -84,6 +100,9 @@ function updateTimestampList() {
             deleteButton.style.fontSize = "12px";
             deleteButton.style.padding = "6px 12px";
             deleteButton.style.marginRight = "6px";
+            deleteButton.style.background = "#FF6B6B";
+            deleteButton.style.color = "black";
+            deleteButton.style.border = "1px solid #D63A3A";
             deleteButton.onclick = function() {
                 deleteTimestamp(index);
             };
@@ -93,6 +112,10 @@ function updateTimestampList() {
             editButton.classList.add("edit-btn");
             editButton.style.fontSize = "12px";
             editButton.style.padding = "6px 12px";
+            editButton.style.background = "#FFDD57";
+            editButton.style.color = "black";
+            editButton.style.border = "1px solid #F39C12";
+
             editButton.onclick = function() {
                 editTimestamp(index);
             };
@@ -261,14 +284,14 @@ function makeDraggable(element) {
         btn = document.createElement("button");
         btn.textContent = "タイムスタンプ記録";
         btn.style.padding = "10px 50px";
-        btn.style.background = "red";
-        btn.style.color = "white";
-        btn.style.border = "none";
+   　　  btn.style.background = "linear-gradient(to bottom, #FFFFFF, #E0F7FA)";
+        btn.style.color = "black";
+        btn.style.border = "2px solid #A0C4FF";
+        btn.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
         btn.style.cursor = "pointer";
         btn.style.fontSize = "18px";
         btn.style.fontWeight = "bold";
         btn.style.borderRadius = "6px";
-        btn.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
         btn.style.pointerEvents = "auto";
         btn.style.zIndex = "101";
         btn.style.position = "relative";
@@ -276,81 +299,88 @@ function makeDraggable(element) {
         btn.onclick = recordTimestamp;
         container.appendChild(btn);
 
+        let listContainer = document.createElement("div");
+        listContainer.style.background = "white";
+        listContainer.style.padding = "4px";
+        listContainer.style.border = "1px solid black";
+        listContainer.style.overflowY = "auto";
+        listContainer.style.zIndex = "9999";
+        listContainer.style.pointerEvents = "auto";
+        listContainer.style.width = "260px";
+        listContainer.style.resize = "both";
+        listContainer.style.height = "150px";
+        listContainer.style.minWidth = "200px";
+        listContainer.style.minHeight = "100px";
 
-     let listContainer = document.createElement("div");
-listContainer.style.background = "white";
-listContainer.style.padding = "4px";
-listContainer.style.border = "1px solid black";
-listContainer.style.maxHeight = "120px";
-listContainer.style.overflowY = "auto";
-listContainer.style.zIndex = "9999";
-listContainer.style.pointerEvents = "auto";
-listContainer.style.width = "260px";
+
+      let heading = document.createElement("h3");
+        heading.textContent = "タイムスタンプ";
+        heading.style.fontSize = "12px";
+        heading.style.fontWeight = "bold";
+        heading.style.margin = "0";
+        heading.style.padding = "2px 4px";
+        heading.style.textAlign = "left";
+
+      let copyAllButton = document.createElement("button");
+        copyAllButton.textContent = "全部コピー";
+        copyAllButton.style.marginLeft = "4px";
+        copyAllButton.style.padding = "6px 5px";
+        copyAllButton.style.fontSize = "12px";
+        copyAllButton.classList.add("no-drag");
+        copyAllButton.style.background = "linear-gradient(to bottom, #A8E6A0, #52C41A)";
+        copyAllButton.style.color = "black";
+        copyAllButton.style.border = "1px solid #3A8F12";
+        copyAllButton.onclick = function() {
+            copyAllTimestamps();
+        };
+      let sortButton = document.createElement("button");
+        sortButton.textContent = "並べ替え";
+        sortButton.style.marginLeft = "4px";
+        sortButton.style.padding = "6px 5px";
+        sortButton.style.fontSize = "12px";
+        sortButton.classList.add("no-drag");
+        sortButton.style.background = "linear-gradient(to bottom, #FFB6C1, #FF69B4)";
+        sortButton.style.color = "black";
+        sortButton.style.border = "1px solid #FF1493";
+        sortButton.onclick = function() {
+            toggleSortOrder();
+        };
+
+        copyAllButton.addEventListener("mousedown", function(event) {
+            event.stopPropagation();
+        });
+
+        heading.appendChild(copyAllButton);
+        heading.appendChild(sortButton);
+
+        listContainer.appendChild(heading);
 
 
- let heading = document.createElement("h3");
-heading.textContent = "タイムスタンプ";
-heading.style.fontSize = "12px";
-heading.style.fontWeight = "bold";
-heading.style.margin = "0";
-heading.style.padding = "2px 4px";
-heading.style.textAlign = "left";
+       let ul = document.createElement("ul");
+        ul.id = "timestamp-list";
+        ul.style.listStyleType = "none";
+        ul.style.padding = "0";
+        ul.style.margin = "0";
+        ul.style.textAlign = "center";
+        listContainer.appendChild(ul);
+        container.appendChild(listContainer);
 
-let copyAllButton = document.createElement("button");
-copyAllButton.textContent = "全部コピー";
-copyAllButton.style.marginLeft = "4px";
-copyAllButton.style.padding = "6px 5px";
-copyAllButton.style.fontSize = "12px";
-copyAllButton.classList.add("no-drag");
-copyAllButton.onclick = function() {
-    copyAllTimestamps();
+        lockButton = document.createElement("button");
+        lockButton.textContent = "ロック";
+        lockButton.style.padding = "8px 10px";
+        lockButton.style.background = "green";
+        lockButton.style.color = "white";
+        lockButton.style.border = "none";
+        lockButton.style.cursor = "pointer";
+        lockButton.style.fontSize = "16px";
+        lockButton.style.fontWeight = "bold";
+        lockButton.style.borderRadius = "6px";
+        lockButton.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
+        lockButton.style.marginTop = "3px";
+        lockButton.onclick = function() {
+            toggleLock();
 };
-
-let sortButton = document.createElement("button");
-sortButton.textContent = "並べ替え";
-sortButton.style.marginLeft = "4px";
-sortButton.style.padding = "6px 5px";
-sortButton.style.fontSize = "12px";
-sortButton.classList.add("no-drag");
-sortButton.onclick = function() {
-    toggleSortOrder();
-};
-
-copyAllButton.addEventListener("mousedown", function(event) {
-    event.stopPropagation();
-});
-
-heading.appendChild(copyAllButton);
-heading.appendChild(sortButton);
-
-listContainer.appendChild(heading);
-
-
-let ul = document.createElement("ul");
-ul.id = "timestamp-list";
-ul.style.listStyleType = "none";
-ul.style.padding = "0";
-ul.style.margin = "0";
-ul.style.textAlign = "center";
-listContainer.appendChild(ul);
-container.appendChild(listContainer);
-
-lockButton = document.createElement("button");
-lockButton.textContent = "ロック";
-lockButton.style.padding = "8px 50px";
-lockButton.style.background = "green";
-lockButton.style.color = "white";
-lockButton.style.border = "none";
-lockButton.style.cursor = "pointer";
-lockButton.style.fontSize = "16px";
-lockButton.style.fontWeight = "bold";
-lockButton.style.borderRadius = "6px";
-lockButton.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
-lockButton.style.marginTop = "3px";
-lockButton.onclick = function() {
-    toggleLock();
-};
-container.appendChild(lockButton);
+        container.appendChild(lockButton);
 
 
         hideButton = document.createElement("button");
@@ -377,9 +407,11 @@ container.appendChild(lockButton);
     }
 
     function toggleLock() {
-        isLocked = !isLocked;
-        lockButton.textContent = isLocked ? "アンロック" : "ロック";
-    }
+    isLocked = !isLocked;
+    lockButton.textContent = isLocked ? "アンロック" : "ロック";
+    lockButton.style.background = isLocked ? "red" : "green";
+}
+
 
     function toggleSortOrder() {
         isAscending = !isAscending;
