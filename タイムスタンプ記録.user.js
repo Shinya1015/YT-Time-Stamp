@@ -2,7 +2,7 @@
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
 // @version      6.1
-// @description  タイムスタンプを記録、並べ替え機能追加
+// @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
 // ==/UserScript==
@@ -204,36 +204,27 @@ function showCustomCopySuccessMessage(text) {
 
         let heading = document.createElement("h3");
         heading.textContent = "タイムスタンプ";
-        heading.style.fontSize = "12px";
+        heading.style.fontSize = "16px";
         heading.style.fontWeight = "bold";
 
         let copyAllButton = document.createElement("button");
         copyAllButton.textContent = "全部コピー";
         copyAllButton.style.marginLeft = "6px";
-        copyAllButton.style.padding = "12px 12px";  // 调整按钮宽度
+        copyAllButton.style.padding = "12px 50px";  // 调整按钮宽度
         copyAllButton.style.fontSize = "10px";
         copyAllButton.classList.add("no-drag");
         copyAllButton.onclick = function() {
             copyAllTimestamps();
         };
 
-        // 排序按钮
-        let sortButton = document.createElement("button");
-        sortButton.textContent = "並べ替え";
-        sortButton.style.marginLeft = "8px";
-        sortButton.style.padding = "12px 12px";  // 调整按钮宽度
-        sortButton.style.fontSize = "10px";
-        sortButton.classList.add("no-drag");
-        sortButton.onclick = function() {
-            toggleSortOrder();
-        };
+
 
         copyAllButton.addEventListener("mousedown", function(event) {
             event.stopPropagation();
         });
 
         heading.appendChild(copyAllButton);
-        heading.appendChild(sortButton); // 排序按钮添加到标题栏
+      
         listContainer.appendChild(heading);
 
         let ul = document.createElement("ul");
