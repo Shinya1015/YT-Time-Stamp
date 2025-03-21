@@ -187,8 +187,11 @@ function showCustomCopySuccessMessage(text) {
         btn.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
         btn.style.pointerEvents = "auto";
         btn.style.zIndex = "101";
+        btn.style.position = "relative";
+        btn.style.top = "-1px";  // 向上移动 10px
         btn.onclick = recordTimestamp;
         container.appendChild(btn);
+
 
         let listContainer = document.createElement("div");
         listContainer.style.background = "white";
@@ -253,7 +256,7 @@ function showCustomCopySuccessMessage(text) {
         lockButton.style.fontWeight = "bold";
         lockButton.style.borderRadius = "6px";
         lockButton.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
-        lockButton.style.marginTop = "10px";
+        lockButton.style.marginTop = "3px";
         lockButton.onclick = function() {
             toggleLock();
         };
@@ -270,7 +273,7 @@ function showCustomCopySuccessMessage(text) {
         hideButton.style.fontWeight = "bold";
         hideButton.style.borderRadius = "6px";
         hideButton.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
-        hideButton.style.marginTop = "10px";
+        hideButton.style.marginTop = "5px";
         hideButton.onclick = function() {
             toggleVisibility();
         };
