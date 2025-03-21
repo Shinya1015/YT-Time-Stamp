@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      6.6
+// @version      6.7
 // @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
@@ -132,7 +132,6 @@ copyButton.addEventListener("mouseout", function() {
         }, 100);
     }
 }
-
 function editTimestamp(index) {
     let currentTimestamp = timestamps[index];
     let editContainer = document.createElement("div");
@@ -148,6 +147,7 @@ function editTimestamp(index) {
     editContainer.style.display = "flex";
     editContainer.style.flexDirection = "column";
     editContainer.style.alignItems = "center";
+    editContainer.style.cursor = "move";
 
     let inputField = document.createElement("input");
     inputField.value = currentTimestamp;
@@ -167,6 +167,7 @@ function editTimestamp(index) {
     saveButton.style.color = "white";
     saveButton.style.border = "none";
     saveButton.style.cursor = "pointer";
+    saveButton.style.fontWeight = "bold";
 
     let cancelButton = document.createElement("button");
     cancelButton.textContent = "キャンセル";
@@ -175,7 +176,7 @@ function editTimestamp(index) {
     cancelButton.style.color = "white";
     cancelButton.style.border = "none";
     cancelButton.style.cursor = "pointer";
-
+    cancelButton.style.fontWeight = "bold";
 
     saveButton.onclick = function() {
         let newTimestamp = inputField.value;
@@ -191,13 +192,36 @@ function editTimestamp(index) {
         document.body.removeChild(editContainer);
     };
 
-
     buttonContainer.appendChild(saveButton);
     buttonContainer.appendChild(cancelButton);
     editContainer.appendChild(inputField);
     editContainer.appendChild(buttonContainer);
 
     document.body.appendChild(editContainer);
+
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    editContainer.addEventListener("mousedown", function(e) {
+        isDragging = true;
+        offsetX = e.clientX - editContainer.getBoundingClientRect().left;
+        offsetY = e.clientY - editContainer.getBoundingClientRect().top;
+        editContainer.style.cursor = "grabbing";
+    });
+
+    document.addEventListener("mousemove", function(e) {
+        if (isDragging) {
+            let left = e.clientX - offsetX;
+            let top = e.clientY - offsetY;
+            editContainer.style.left = left + "px";
+            editContainer.style.top = top + "px";
+        }
+    });
+
+    document.addEventListener("mouseup", function() {
+        isDragging = false;
+        editContainer.style.cursor = "move";
+    });
 }
 
 function copyToClipboard(text) {
