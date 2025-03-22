@@ -472,7 +472,7 @@ container.appendChild(btn);
 
 
       let heading = document.createElement("h3");
-        heading.textContent = "タイムスタンプ";
+        heading.textContent = "長押しして移動";
         heading.style.fontSize = "14px";
         heading.style.fontWeight = "bold";
         heading.style.margin = "0";
