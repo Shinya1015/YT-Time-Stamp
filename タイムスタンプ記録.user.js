@@ -229,6 +229,13 @@ function editTimestamp(index) {
 
     document.body.appendChild(editContainer);
 
+    // 按下Enter键时触发保存
+    inputField.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            saveButton.click(); // 模拟点击保存按钮
+        }
+    });
+
     // 只在点击非输入框区域时启动拖动
     let dragIsActive = false;
     let dragOffsetX, dragOffsetY;
@@ -258,7 +265,6 @@ function editTimestamp(index) {
         editContainer.style.cursor = "move";
     });
 }
-
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
