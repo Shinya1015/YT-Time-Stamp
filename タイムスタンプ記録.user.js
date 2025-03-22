@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      6.7
+// @version      7.0
 // @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
@@ -57,84 +57,114 @@ function updateTimestampList() {
             timestamps.sort().reverse();
         }
 
-        timestamps.forEach((t, index) => {
-            let listItem = document.createElement("li");
-            listItem.style.display = "flex";
-            listItem.style.alignItems = "center";
-            listItem.style.marginBottom = "4px";
-            listItem.style.padding = "2px";
-            listItem.style.maxWidth = "230px";
-            listItem.style.width = "auto";
-            listItem.style.overflow = "hidden";
+timestamps.forEach((t, index) => {
+    // 创建列表项
+    let listItem = document.createElement("li");
+    listItem.style.display = "flex";
+    listItem.style.alignItems = "center";
+    listItem.style.marginBottom = "4px";
+    listItem.style.padding = "2px";  // 增加内边距
+    listItem.style.width = "100%"; // 确保列表项填充父容器宽度
+    listItem.style.overflow = "visible"; // 内容不被截断
+    listItem.style.flexWrap = "nowrap"; // 防止换行
+    listItem.style.whiteSpace = "nowrap"; // 保持文本在一行
+    listItem.style.textOverflow = "ellipsis"; // 溢出时显示省略号
+    // 削除按钮
+    let deleteButton = document.createElement("button");
+    deleteButton.textContent = "削除";
+    deleteButton.classList.add("delete-btn");
+    deleteButton.style.fontSize = "12px";
+    deleteButton.style.padding = "6px 12px";
+    deleteButton.style.marginRight = "6px";
+    deleteButton.style.background = "#FF6B6B";
+    deleteButton.style.color = "black";
+    deleteButton.style.border = "1px solid #D63A3A";
+    deleteButton.style.fontWeight = "bold";
+    deleteButton.onclick = function() {
+        deleteTimestamp(index);
+    };
 
-            let displayText = `${t}`;
-            let copyButton = document.createElement("button");
-            copyButton.textContent = displayText;
-            copyButton.classList.add("copy-btn");
-            copyButton.style.fontSize = "14px";
-            copyButton.style.padding = "8px 18px";
-            copyButton.style.marginRight = "6px";
-            copyButton.style.background = "linear-gradient(to bottom, #A3C9D9, #B0D1E5)";
-            copyButton.style.color = "black";
-            copyButton.style.fontWeight = "bold";
-            copyButton.style.border = "1px solid #9BBED4";
-            copyButton.addEventListener("mouseover", function() {
-            copyButton.style.background = "linear-gradient(to bottom, #D1E6F1, #C5D9E8)";
-            copyButton.style.border = "1px solid #A6C6D6";
-});
-
-
-copyButton.addEventListener("mouseout", function() {
+    // 編集按钮
+    let editButton = document.createElement("button");
+    editButton.textContent = "編集";
+    editButton.classList.add("edit-btn");
+    editButton.style.fontSize = "12px";
+    editButton.style.padding = "6px 12px";
+    editButton.style.marginRight = "6px";
+    editButton.style.background = "#FFDD57";
+    editButton.style.color = "black";
+    editButton.style.border = "1px solid #F39C12";
+    editButton.style.fontWeight = "bold";
+    editButton.onclick = function() {
+        editTimestamp(index);
+    };
+    // 时间戳按钮
+    let displayText = `${t}`;
+    let copyButton = document.createElement("button");
+    copyButton.textContent = displayText;
+    copyButton.classList.add("copy-btn");
+    copyButton.style.fontSize = "14px";
+    copyButton.style.padding = "8px 250px 8px 8px"; // 只設定右邊的內邊距
+    copyButton.style.marginRight = "6px"; // 調整右邊距
     copyButton.style.background = "linear-gradient(to bottom, #A3C9D9, #B0D1E5)";
+    copyButton.style.color = "black";
+    copyButton.style.fontWeight = "bold";
     copyButton.style.border = "1px solid #9BBED4";
+    copyButton.style.whiteSpace = "nowrap"; // 防止文字換行
+    copyButton.style.writingMode = "horizontal-tb"; // 強制水平排列文字
+
+    // 這裡使用 flex 讓文字左對齊
+    copyButton.style.display = "inline-flex"; // 使用 inline-flex 讓按鈕內部元素按順序排列
+    copyButton.style.justifyContent = "flex-start"; // 讓文字靠左對齊
+    copyButton.style.alignItems = "center"; // 保證按鈕內文字垂直居中
+
+    // 文字對齊設置為左邊
+    copyButton.style.textAlign = "left"; // 強制文字在水平方向左對齊
+
+    copyButton.onclick = function() {
+        copyToClipboard(displayText);
+    };
+
+
+
+
+
+    // 创建父元素的容器，容纳按钮和文本
+    let container = document.createElement("div");
+    container.style.display = "flex";
+    container.style.alignItems = "center";
+    container.style.flexWrap = "nowrap"; // 防止元素换行
+    container.style.width = "100%";  // 设置容器宽度为100%，自适应
+    container.style.minWidth = "400px"; // 设置最小宽度来确保容器较大
+    container.style.padding = "0"; // 设置容器内边距为0，避免多余的空白
+
+    // 将按钮和时间戳内容添加到容器中
+    container.appendChild(deleteButton);
+    container.appendChild(editButton);
+    container.appendChild(copyButton);
+
+    // 将容器放入列表项中
+    listItem.appendChild(container);
+    list.appendChild(listItem);
+
+    // 动态调整父元素宽度
+    let updateWidth = () => {
+        let width = container.scrollWidth;  // 获取容器的实际宽度
+        container.style.width = `${width + 20}px`; // 自动增加宽度
+    };
+
+    // 在内容变化时调整宽度
+    setTimeout(updateWidth, 100);
 });
-
-
-            copyButton.onclick = function() {
-                copyToClipboard(displayText);
-            };
-
-            let deleteButton = document.createElement("button");
-            deleteButton.textContent = "削除";
-            deleteButton.classList.add("delete-btn");
-            deleteButton.style.fontSize = "12px";
-            deleteButton.style.padding = "6px 12px";
-            deleteButton.style.marginRight = "6px";
-            deleteButton.style.background = "#FF6B6B";
-            deleteButton.style.color = "black";
-            deleteButton.style.border = "1px solid #D63A3A";
-            deleteButton.style.fontWeight = "bold";
-            deleteButton.onclick = function() {
-                deleteTimestamp(index);
-            };
-
-            let editButton = document.createElement("button");
-            editButton.textContent = "編集";
-            editButton.classList.add("edit-btn");
-            editButton.style.fontSize = "12px";
-            editButton.style.padding = "6px 12px";
-            editButton.style.background = "#FFDD57";
-            editButton.style.color = "black";
-            editButton.style.border = "1px solid #F39C12";
-            editButton.style.fontWeight = "bold";
-            editButton.onclick = function() {
-                editTimestamp(index);
-            };
-
-            listItem.appendChild(copyButton);
-            listItem.appendChild(deleteButton);
-            listItem.appendChild(editButton);
-            list.appendChild(listItem);
-        });
-
-        setTimeout(() => {
-            list.scrollTop = list.scrollHeight;
-        }, 100);
     }
 }
 function editTimestamp(index) {
+    // 若已存在編輯視窗，則不再建立新的
+    if (document.getElementById("edit-container")) return;
+
     let currentTimestamp = timestamps[index];
     let editContainer = document.createElement("div");
+    editContainer.id = "edit-container"; // 設定唯一ID
     editContainer.style.position = "fixed";
     editContainer.style.top = "50%";
     editContainer.style.left = "50%";
@@ -199,30 +229,36 @@ function editTimestamp(index) {
 
     document.body.appendChild(editContainer);
 
-    let isDragging = false;
-    let offsetX, offsetY;
+    // 只在点击非输入框区域时启动拖动
+    let dragIsActive = false;
+    let dragOffsetX, dragOffsetY;
 
     editContainer.addEventListener("mousedown", function(e) {
-        isDragging = true;
-        offsetX = e.clientX - editContainer.getBoundingClientRect().left;
-        offsetY = e.clientY - editContainer.getBoundingClientRect().top;
+        // 如果点到输入框，阻止拖动
+        if (e.target === inputField) return;
+
+        // 启动拖动
+        dragIsActive = true;
+        dragOffsetX = e.clientX - editContainer.getBoundingClientRect().left;
+        dragOffsetY = e.clientY - editContainer.getBoundingClientRect().top;
         editContainer.style.cursor = "grabbing";
     });
 
     document.addEventListener("mousemove", function(e) {
-        if (isDragging) {
-            let left = e.clientX - offsetX;
-            let top = e.clientY - offsetY;
+        if (dragIsActive) {
+            let left = e.clientX - dragOffsetX;
+            let top = e.clientY - dragOffsetY;
             editContainer.style.left = left + "px";
             editContainer.style.top = top + "px";
         }
     });
 
     document.addEventListener("mouseup", function() {
-        isDragging = false;
+        dragIsActive = false;
         editContainer.style.cursor = "move";
     });
 }
+
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
@@ -265,18 +301,18 @@ function deleteTimestamp(index) {
 
 function makeDraggable(element) {
     element.addEventListener('mousedown', function(e) {
-        if (e.target && (e.target.classList.contains('delete-btn') || e.target.classList.contains('copy-btn') || e.target.classList.contains('no-drag'))) {
+        // 如果点击目标或其祖先元素是按钮，则不启动拖动
+        if (e.target.closest("button")) {
             return;
         }
-
         if (isLocked) return;
-
         e.preventDefault();
         isDragging = true;
         offsetX = e.clientX - element.getBoundingClientRect().left;
         offsetY = e.clientY - element.getBoundingClientRect().top;
         document.body.style.cursor = 'move';
     });
+
 
     document.addEventListener('mousemove', function(e) {
         if (isDragging) {
@@ -309,7 +345,7 @@ function makeDraggable(element) {
         btn = document.createElement("button");
         btn.textContent = "タイムスタンプ記録";
         btn.style.padding = "10px 50px";
-   　　  btn.style.background = "linear-gradient(to bottom, #FFFFFF, #E0F7FA)";
+   　　 btn.style.background = "linear-gradient(to bottom, #FFFFFF, #E0F7FA)";
         btn.style.color = "black";
         btn.style.border = "2px solid #A0C4FF";
         btn.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
@@ -323,7 +359,7 @@ function makeDraggable(element) {
         btn.style.top = "-1px";
         btn.onclick = recordTimestamp;
         container.appendChild(btn);
-
+//清單父元素框框
         let listContainer = document.createElement("div");
         listContainer.style.background = "white";
         listContainer.style.padding = "4px";
@@ -331,7 +367,7 @@ function makeDraggable(element) {
         listContainer.style.overflowY = "auto";
         listContainer.style.zIndex = "9999";
         listContainer.style.pointerEvents = "auto";
-        listContainer.style.width = "260px";
+        listContainer.style.width = "500px";
         listContainer.style.resize = "both";
         listContainer.style.height = "150px";
         listContainer.style.minWidth = "200px";
