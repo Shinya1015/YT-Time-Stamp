@@ -104,26 +104,34 @@ timestamps.forEach((t, index) => {
     copyButton.textContent = displayText;
     copyButton.classList.add("copy-btn");
     copyButton.style.fontSize = "14px";
-    copyButton.style.padding = "8px 250px 8px 8px"; // 只設定右邊的內邊距
-    copyButton.style.marginRight = "6px"; // 調整右邊距
-    copyButton.style.background = "linear-gradient(to bottom, #A3C9D9, #B0D1E5)";
+    copyButton.style.padding = "10px 2px";  // 固定的内边距，防止背景变大
+    copyButton.style.marginRight = "20px"; // 调整右边距
+    copyButton.style.background = "#A3C9D9";  // 固定的背景色（蓝色）
     copyButton.style.color = "black";
     copyButton.style.fontWeight = "bold";
-    copyButton.style.border = "1px solid #9BBED4";
-    copyButton.style.whiteSpace = "nowrap"; // 防止文字換行
-    copyButton.style.writingMode = "horizontal-tb"; // 強制水平排列文字
+    copyButton.style.border = "1px solid #9BBED4"; // 固定的边框颜色
+    copyButton.style.whiteSpace = "nowrap"; // 防止文字换行
+    copyButton.style.writingMode = "horizontal-tb"; // 强制水平排列文字
 
-    // 這裡使用 flex 讓文字左對齊
-    copyButton.style.display = "inline-flex"; // 使用 inline-flex 讓按鈕內部元素按順序排列
-    copyButton.style.justifyContent = "flex-start"; // 讓文字靠左對齊
-    copyButton.style.alignItems = "center"; // 保證按鈕內文字垂直居中
+    // 设置固定宽度，确保背景不变
+    copyButton.style.width = "250px";  // 设置一个固定宽度（根据需求调整）
+    copyButton.style.overflowX = "auto"; // 开启水平滚动条
+    copyButton.style.textOverflow = "clip"; // 防止省略号显示
+    copyButton.style.whiteSpace = "nowrap"; // 保证文字不换行，超出显示滚动条
 
-    // 文字對齊設置為左邊
-    copyButton.style.textAlign = "left"; // 強制文字在水平方向左對齊
+    // 使用 flex 让文字左对齐
+    copyButton.style.display = "inline-flex"; // 使用 inline-flex 让按钮内部元素按顺序排列
+    copyButton.style.justifyContent = "flex-start"; // 让文字靠左对齐
+    copyButton.style.alignItems = "center"; // 保证按钮内文字垂直居中
+
+    // 如果文字超出按钮宽度，使用滚动条显示
+    copyButton.style.overflow = "hidden";  // 防止溢出的内容被遮挡
+    copyButton.style.overflowX = "auto";  // 在X轴方向允许滚动
 
     copyButton.onclick = function() {
         copyToClipboard(displayText);
     };
+
 
 
 
@@ -373,7 +381,7 @@ function makeDraggable(element) {
         listContainer.style.overflowY = "auto";
         listContainer.style.zIndex = "9999";
         listContainer.style.pointerEvents = "auto";
-        listContainer.style.width = "500px";
+        listContainer.style.width = "400px";//拉寬
         listContainer.style.resize = "both";
         listContainer.style.height = "150px";
         listContainer.style.minWidth = "200px";
