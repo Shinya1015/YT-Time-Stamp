@@ -248,13 +248,27 @@ function editTimestamp(index) {
     editContainer.style.flexDirection = "column";
     editContainer.style.alignItems = "center";
     editContainer.style.cursor = "move";
+let inputField = document.createElement("textarea");
+inputField.value = currentTimestamp;
+inputField.style.fontSize = "18px";  // 设置较大的字体
+inputField.style.padding = "10px";  // 调整内边距，使文本不贴边
+inputField.style.width = "150px";  // 设置宽度
+inputField.style.height = "150px";  // 设置高度，使其成为正方形
+inputField.style.marginBottom = "10px";  // 保持底部外边距
+inputField.style.lineHeight = "1.5";  // 增加行间距，避免文字重叠
+inputField.style.border = "1px solid #ccc";  // 添加边框
+inputField.style.borderRadius = "5px";  // 圆角边框
+inputField.style.overflow = "auto";  // 超出部分可以滚动
+inputField.style.resize = "none";  // 禁止改变大小
+inputField.style.whiteSpace = "pre-wrap";  // 保证文字不换行并保留换行符
+inputField.style.textAlign = "left";  // 文字左对齐
 
-    let inputField = document.createElement("input");
-    inputField.value = currentTimestamp;
-    inputField.style.fontSize = "14px";
-    inputField.style.padding = "6px 10px";
-    inputField.style.width = "150px";
-    inputField.style.marginBottom = "10px";
+// 使文本垂直对齐
+inputField.style.display = "flex";
+inputField.style.flexDirection = "column";
+inputField.style.justifyContent = "flex-start";  // 保证文字从顶部开始显示
+inputField.style.alignItems = "flex-start";  // 文字从左侧开始
+
 
     let buttonContainer = document.createElement("div");
     buttonContainer.style.display = "flex";
