@@ -58,19 +58,17 @@ function updateTimestampList() {
         }
 
 timestamps.forEach((t, index) => {
-    // 创建列表项
     let listItem = document.createElement("li");
     listItem.style.display = "flex";
     listItem.style.alignItems = "center";
     listItem.style.marginBottom = "4px";
-    listItem.style.padding = "2px";  // 增加内边距
-    listItem.style.width = "100%"; // 确保列表项填充父容器宽度
-    listItem.style.overflow = "visible"; // 内容不被截断
-    listItem.style.flexWrap = "nowrap"; // 防止换行
-    listItem.style.whiteSpace = "nowrap"; // 保持文本在一行
-    listItem.style.textOverflow = "ellipsis"; // 溢出时显示省略号
+    listItem.style.padding = "2px";
+    listItem.style.width = "100%";
+    listItem.style.overflow = "visible";
+    listItem.style.flexWrap = "nowrap";
+    listItem.style.whiteSpace = "nowrap";
+    listItem.style.textOverflow = "ellipsis";
 
-    // 删除按钮
     let deleteButton = document.createElement("button");
     deleteButton.textContent = "削除";
     deleteButton.classList.add("delete-btn");
@@ -83,31 +81,31 @@ timestamps.forEach((t, index) => {
     deleteButton.style.fontWeight = "bold";
     deleteButton.style.transition = "background-color 0.3s, transform 0.2s";
 
-    // 鼠标悬停时变色
+
     deleteButton.onmouseover = function() {
-        deleteButton.style.background = "#FF4C4C"; // 鼠标悬停时变色
+        deleteButton.style.background = "#FF4C4C";
     };
 
     deleteButton.onmouseleave = function() {
-        deleteButton.style.background = "#FF6B6B"; // 恢复原色
+        deleteButton.style.background = "#FF6B6B";
     };
 
-    // 按钮点击时变色
+
     deleteButton.onmousedown = function() {
-        deleteButton.style.background = "#D63A3A"; // 按下时变色
-        deleteButton.style.transform = "scale(0.95)"; // 点击时缩小
+        deleteButton.style.background = "#D63A3A";
+        deleteButton.style.transform = "scale(0.95)";
     };
 
     deleteButton.onmouseup = function() {
-        deleteButton.style.background = "#FF4C4C"; // 点击结束时变色
-        deleteButton.style.transform = "scale(1)"; // 恢复按钮大小
+        deleteButton.style.background = "#FF4C4C";
+        deleteButton.style.transform = "scale(1)";
     };
 
     deleteButton.onclick = function() {
         deleteTimestamp(index);
     };
 
-    // 编辑按钮
+
     let editButton = document.createElement("button");
     editButton.textContent = "編集";
     editButton.classList.add("edit-btn");
@@ -120,121 +118,110 @@ timestamps.forEach((t, index) => {
     editButton.style.fontWeight = "bold";
     editButton.style.transition = "background-color 0.3s, transform 0.2s";
 
-    // 鼠标悬停时变色
+
     editButton.onmouseover = function() {
-        editButton.style.background = "#FFCF57"; // 鼠标悬停时变色
+        editButton.style.background = "#FFCF57";
     };
 
     editButton.onmouseleave = function() {
-        editButton.style.background = "#FFDD57"; // 恢复原色
+        editButton.style.background = "#FFDD57";
     };
 
-    // 按钮点击时变色
+
     editButton.onmousedown = function() {
-        editButton.style.background = "#F39C12"; // 按下时变色
-        editButton.style.transform = "scale(0.95)"; // 点击时缩小
+        editButton.style.background = "#F39C12";
+        editButton.style.transform = "scale(0.95)";
     };
 
     editButton.onmouseup = function() {
-        editButton.style.background = "#FFCF57"; // 点击结束时变色
-        editButton.style.transform = "scale(1)"; // 恢复按钮大小
+        editButton.style.background = "#FFCF57";
+        editButton.style.transform = "scale(1)";
     };
 
     editButton.onclick = function() {
         editTimestamp(index);
     };
     // 时间戳按钮
-   let displayText = `${t}`;
-let copyButton = document.createElement("button");
-copyButton.textContent = displayText;
-copyButton.classList.add("copy-btn");
-copyButton.style.fontSize = "16px";
-copyButton.style.padding = "10px 2px";  // 固定的内边距，防止背景变大
-copyButton.style.marginRight = "20px"; // 调整右边距
-copyButton.style.background = "#A3C9D9";  // 固定的背景色（蓝色）
-copyButton.style.color = "black";
-copyButton.style.fontWeight = "bold";
-copyButton.style.border = "1px solid #9BBED4"; // 固定的边框颜色
-copyButton.style.whiteSpace = "nowrap"; // 防止文字换行
-copyButton.style.writingMode = "horizontal-tb"; // 强制水平排列文字
+    let displayText = `${t}`;
+    let copyButton = document.createElement("button");
+    copyButton.textContent = displayText;
+    copyButton.classList.add("copy-btn");
+    copyButton.style.fontSize = "16px";
+    copyButton.style.padding = "10px 2px";
+    copyButton.style.marginRight = "20px";
+    copyButton.style.background = "#A3C9D9";
+    copyButton.style.color = "black";
+    copyButton.style.fontWeight = "bold";
+    copyButton.style.border = "1px solid #9BBED4";
+    copyButton.style.whiteSpace = "nowrap";
+    copyButton.style.writingMode = "horizontal-tb";
 
-// 设置固定宽度，确保背景不变
-copyButton.style.width = "250px";  // 设置一个固定宽度（根据需求调整）
-copyButton.style.overflowX = "auto"; // 开启水平滚动条
-copyButton.style.textOverflow = "clip"; // 防止省略号显示
-copyButton.style.whiteSpace = "nowrap"; // 保证文字不换行，超出显示滚动条
-
-// 使用 flex 让文字左对齐
-copyButton.style.display = "inline-flex"; // 使用 inline-flex 让按钮内部元素按顺序排列
-copyButton.style.justifyContent = "flex-start"; // 让文字靠左对齐
-copyButton.style.alignItems = "center"; // 保证按钮内文字垂直居中
-
-// 如果文字超出按钮宽度，使用滚动条显示
-copyButton.style.overflow = "hidden";  // 防止溢出的内容被遮挡
-copyButton.style.overflowX = "auto";  // 在X轴方向允许滚动
-
-// 悬停和点击后的颜色变化
-copyButton.onmouseover = function() {
-    copyButton.style.background = "#88B8D9";  // 鼠标悬停时变色
-};
-
-copyButton.onmouseleave = function() {
-    copyButton.style.background = "#A3C9D9";  // 悬停结束时恢复原色
-};
-
-copyButton.onmousedown = function() {
-    copyButton.style.background = "#7AA8C9";  // 鼠标点击时变色
-};
-
-copyButton.onmouseup = function() {
-    copyButton.style.background = "#88B8D9";  // 点击结束时变色
-};
-
-copyButton.onclick = function() {
-    copyToClipboard(displayText);
-};
+    copyButton.style.width = "250px";
+    copyButton.style.overflowX = "auto";
+    copyButton.style.textOverflow = "clip";
+    copyButton.style.whiteSpace = "nowrap";
 
 
+    copyButton.style.display = "inline-flex";
+    copyButton.style.justifyContent = "flex-start";
+    copyButton.style.alignItems = "center";
+
+    copyButton.style.overflow = "hidden";
+    copyButton.style.overflowX = "auto";
+
+    copyButton.onmouseover = function() {
+        copyButton.style.background = "#88B8D9";
+    };
+
+    copyButton.onmouseleave = function() {
+        copyButton.style.background = "#A3C9D9";
+    };
+
+    copyButton.onmousedown = function() {
+        copyButton.style.background = "#7AA8C9";
+    };
+
+    copyButton.onmouseup = function() {
+        copyButton.style.background = "#88B8D9";
+    };
+
+    copyButton.onclick = function() {
+        copyToClipboard(displayText);
+    };
 
 
-
-
-    // 创建父元素的容器，容纳按钮和文本
     let container = document.createElement("div");
     container.style.display = "flex";
     container.style.alignItems = "center";
-    container.style.flexWrap = "nowrap"; // 防止元素换行
-    container.style.width = "100%";  // 设置容器宽度为100%，自适应
-    container.style.minWidth = "400px"; // 设置最小宽度来确保容器较大
-    container.style.padding = "0"; // 设置容器内边距为0，避免多余的空白
+    container.style.flexWrap = "nowrap";
+    container.style.width = "100%";
+    container.style.minWidth = "400px";
+    container.style.padding = "0";
 
-    // 将按钮和时间戳内容添加到容器中
+
     container.appendChild(deleteButton);
     container.appendChild(editButton);
     container.appendChild(copyButton);
 
-    // 将容器放入列表项中
+
     listItem.appendChild(container);
     list.appendChild(listItem);
 
-    // 动态调整父元素宽度
+
     let updateWidth = () => {
-        let width = container.scrollWidth;  // 获取容器的实际宽度
-        container.style.width = `${width + 20}px`; // 自动增加宽度
+        let width = container.scrollWidth;
+        container.style.width = `${width + 20}px`;
     };
 
-    // 在内容变化时调整宽度
     setTimeout(updateWidth, 100);
 });
     }
 }
 function editTimestamp(index) {
-    // 若已存在編輯視窗，則不再建立新的
     if (document.getElementById("edit-container")) return;
-
     let currentTimestamp = timestamps[index];
     let editContainer = document.createElement("div");
-    editContainer.id = "edit-container"; // 設定唯一ID
+    editContainer.id = "edit-container";
     editContainer.style.position = "fixed";
     editContainer.style.top = "50%";
     editContainer.style.left = "50%";
@@ -248,26 +235,25 @@ function editTimestamp(index) {
     editContainer.style.flexDirection = "column";
     editContainer.style.alignItems = "center";
     editContainer.style.cursor = "move";
-let inputField = document.createElement("textarea");
-inputField.value = currentTimestamp;
-inputField.style.fontSize = "18px";  // 设置较大的字体
-inputField.style.padding = "10px";  // 调整内边距，使文本不贴边
-inputField.style.width = "150px";  // 设置宽度
-inputField.style.height = "150px";  // 设置高度，使其成为正方形
-inputField.style.marginBottom = "10px";  // 保持底部外边距
-inputField.style.lineHeight = "1.5";  // 增加行间距，避免文字重叠
-inputField.style.border = "1px solid #ccc";  // 添加边框
-inputField.style.borderRadius = "5px";  // 圆角边框
-inputField.style.overflow = "auto";  // 超出部分可以滚动
-inputField.style.resize = "none";  // 禁止改变大小
-inputField.style.whiteSpace = "pre-wrap";  // 保证文字不换行并保留换行符
-inputField.style.textAlign = "left";  // 文字左对齐
 
-// 使文本垂直对齐
-inputField.style.display = "flex";
-inputField.style.flexDirection = "column";
-inputField.style.justifyContent = "flex-start";  // 保证文字从顶部开始显示
-inputField.style.alignItems = "flex-start";  // 文字从左侧开始
+    let inputField = document.createElement("textarea");
+    inputField.value = currentTimestamp;
+    inputField.style.fontSize = "18px";
+    inputField.style.padding = "10px";
+    inputField.style.width = "150px";
+    inputField.style.height = "150px";
+    inputField.style.marginBottom = "10px";
+    inputField.style.lineHeight = "1.5";
+    inputField.style.border = "1px solid #ccc";
+    inputField.style.borderRadius = "5px";
+    inputField.style.overflow = "auto";
+    inputField.style.resize = "none";
+    inputField.style.whiteSpace = "pre-wrap";
+    inputField.style.textAlign = "left";
+    inputField.style.display = "flex";
+    inputField.style.flexDirection = "column";
+    inputField.style.justifyContent = "flex-start";
+    inputField.style.alignItems = "flex-start";
 
 
     let buttonContainer = document.createElement("div");
@@ -313,22 +299,18 @@ inputField.style.alignItems = "flex-start";  // 文字从左侧开始
 
     document.body.appendChild(editContainer);
 
-    // 按下Enter键时触发保存
+
     inputField.addEventListener("keydown", function(e) {
         if (e.key === "Enter") {
-            saveButton.click(); // 模拟点击保存按钮
+            saveButton.click();
         }
     });
 
-    // 只在点击非输入框区域时启动拖动
     let dragIsActive = false;
     let dragOffsetX, dragOffsetY;
 
     editContainer.addEventListener("mousedown", function(e) {
-        // 如果点到输入框，阻止拖动
         if (e.target === inputField) return;
-
-        // 启动拖动
         dragIsActive = true;
         dragOffsetX = e.clientX - editContainer.getBoundingClientRect().left;
         dragOffsetY = e.clientY - editContainer.getBoundingClientRect().top;
@@ -354,13 +336,13 @@ function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
         showCustomCopySuccessMessage(text);
     }).catch(err => {
-        console.error('复制失败', err);
+        console.error('コピー失敗', err);
     });
 }
 
 function showCustomCopySuccessMessage(text) {
     let messageBox = document.createElement("div");
-    messageBox.textContent = `复制成功: ${text}`;
+    messageBox.textContent = `コピー成功: ${text}`;
     messageBox.style.position = "fixed";
     messageBox.style.top = "10px";
     messageBox.style.left = "50%";
