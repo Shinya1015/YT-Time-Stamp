@@ -630,7 +630,7 @@ function showConfirmModal() {
     modalContent.style.width = "280px";
     modalContent.style.textAlign = "center";
     modalContent.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.2)";
-
+    modalContent.style.cursor = "move";  // 设置光标为可以拖动
     let message = document.createElement("p");
     message.textContent = "すべての記録を削除しますか？";
     message.style.fontSize = "16px"; // 調整字體大小
@@ -681,6 +681,32 @@ function showConfirmModal() {
 
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
+    // 鼠标悬停和点击效果
+    cancelButton.addEventListener("mouseover", function() {
+        cancelButton.style.backgroundColor = "#666"; // 鼠标悬停时背景色变化
+    });
+    cancelButton.addEventListener("mouseout", function() {
+        cancelButton.style.backgroundColor = "#999"; // 恢复原背景色
+    });
+    cancelButton.addEventListener("mousedown", function() {
+        cancelButton.style.transform = "scale(0.95)"; // 按下时按钮缩小
+    });
+    cancelButton.addEventListener("mouseup", function() {
+        cancelButton.style.transform = "scale(1)"; // 松开时恢复正常大小
+    });
+
+    confirmButton.addEventListener("mouseover", function() {
+        confirmButton.style.backgroundColor = "#c0392b"; // 鼠标悬停时背景色变化
+    });
+    confirmButton.addEventListener("mouseout", function() {
+        confirmButton.style.backgroundColor = "#e74c3c"; // 恢复原背景色
+    });
+    confirmButton.addEventListener("mousedown", function() {
+        confirmButton.style.transform = "scale(0.95)"; // 按下时按钮缩小
+    });
+    confirmButton.addEventListener("mouseup", function() {
+        confirmButton.style.transform = "scale(1)"; // 松开时恢复正常大小
+    });
 }
 
 
@@ -903,3 +929,5 @@ function showCopySuccessMessage(text) {
 }
 addUI();
 })();
+
+
