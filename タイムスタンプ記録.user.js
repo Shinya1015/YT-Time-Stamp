@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      8.0
+// @version      8.1
 // @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
@@ -219,6 +219,7 @@ timestamps.forEach((t, index) => {
 }
 function editTimestamp(index) {
     if (document.getElementById("edit-container")) return;
+
     let currentTimestamp = timestamps[index];
     let editContainer = document.createElement("div");
     editContainer.id = "edit-container";
@@ -237,6 +238,7 @@ function editTimestamp(index) {
     editContainer.style.cursor = "move";
     editContainer.style.width = "200px";  // 修改宽度
     editContainer.style.height = "200px";  // 修改高度
+    editContainer.style.userSelect = "none";  // 禁止选中文本
 
     let inputField = document.createElement("textarea");
     inputField.value = currentTimestamp;
@@ -298,9 +300,10 @@ function editTimestamp(index) {
     let isDragging = false;
     let offsetX, offsetY;
 
+    // 阻止按钮被拖动
     editContainer.onmousedown = function(e) {
-        if (e.target === buttonContainer || e.target === cancelButton || e.target === saveButton) {
-            return;  // Do not allow drag if clicked on buttons
+        if (e.target === buttonContainer || e.target === cancelButton || e.target === saveButton || e.target === inputField) {
+            return;  // Do not allow drag if clicked on buttons or input
         }
 
         isDragging = true;
@@ -324,12 +327,11 @@ function editTimestamp(index) {
 
     document.onmouseup = function() {
         isDragging = false;
-        editContainer.style.cursor = "grab";
+        editContainer.style.cursor = "move";
 
         // Restore pointer events after dragging
         document.body.style.pointerEvents = "auto";  // Re-enable pointer events for the body
     };
-
 
     inputField.addEventListener("keydown", function(e) {
         if (e.key === "Enter") {
@@ -341,7 +343,7 @@ function editTimestamp(index) {
     let dragOffsetX, dragOffsetY;
 
     editContainer.addEventListener("mousedown", function(e) {
-        if (e.target === inputField) return;
+        if (e.target === inputField || e.target === buttonContainer || e.target === saveButton || e.target === cancelButton) return;  // Don't allow drag if clicked on input or buttons
         dragIsActive = true;
         dragOffsetX = e.clientX - editContainer.getBoundingClientRect().left;
         dragOffsetY = e.clientY - editContainer.getBoundingClientRect().top;
@@ -362,6 +364,7 @@ function editTimestamp(index) {
         editContainer.style.cursor = "move";
     });
 }
+
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
