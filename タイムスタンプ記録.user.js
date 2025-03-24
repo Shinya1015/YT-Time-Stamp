@@ -404,36 +404,36 @@ function deleteTimestamp(index) {
     saveTimestamps();
     updateTimestampList();
 }
-
-function makeDraggable(element) {
+function makeDraggable(element, allowDrag = true) {
     element.addEventListener('mousedown', function(e) {
-        if (e.target.closest("button")) {
-            return;
-        }
-        if (isLocked) return;
+        if (isLocked || !allowDrag) return;  // 如果被锁定或不允许拖动，则不继续
+
+        // 阻止默认行为（避免文本选择等）
         e.preventDefault();
         isDragging = true;
         offsetX = e.clientX - element.getBoundingClientRect().left;
         offsetY = e.clientY - element.getBoundingClientRect().top;
-        document.body.style.cursor = 'move';
+        document.body.style.cursor = 'move';  // 更改鼠标样式为拖动状态
     });
 
-
+    // 监听鼠标移动事件
     document.addEventListener('mousemove', function(e) {
-        if (isDragging) {
-            let newLeft = e.clientX - offsetX;
-            let newTop = e.clientY - offsetY;
-            element.style.left = `${newLeft}px`;
-            element.style.top = `${newTop}px`;
-        }
+        if (!isDragging) return;
+
+        let newLeft = e.clientX - offsetX;
+        let newTop = e.clientY - offsetY;
+
+        // 更新拖动元素的位置
+        element.style.left = `${newLeft}px`;
+        element.style.top = `${newTop}px`;
     });
 
+    // 监听鼠标松开事件
     document.addEventListener('mouseup', function() {
         isDragging = false;
-        document.body.style.cursor = '';
+        document.body.style.cursor = '';  // 恢复光标样式
     });
 }
-
 
     function addUI() {
         container = document.createElement("div");
@@ -782,7 +782,10 @@ hideButton.onclick = function() {
 container.appendChild(hideButton);
 
 document.body.appendChild(container);
-makeDraggable(container);
+makeDraggable(container, true);
+
+// 只允许表示/隠す按钮在 container 内部被拖动
+makeDraggable(hideButton, false);
 loadTimestamps();
 updateTimestampList();
 
