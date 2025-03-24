@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      8.2
+// @version      8.5
 // @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
@@ -406,32 +406,27 @@ function deleteTimestamp(index) {
 }
 function makeDraggable(element, allowDrag = true) {
     element.addEventListener('mousedown', function(e) {
-        if (isLocked || !allowDrag) return;  // 如果被锁定或不允许拖动，则不继续
-
-        // 阻止默认行为（避免文本选择等）
+        if (isLocked || !allowDrag) return;
+        // 如果点击的是一个 button 且该按钮不是 hideButton，则不启动拖动
+        if (e.target.closest("button") && e.target !== hideButton) return;
         e.preventDefault();
         isDragging = true;
         offsetX = e.clientX - element.getBoundingClientRect().left;
         offsetY = e.clientY - element.getBoundingClientRect().top;
-        document.body.style.cursor = 'move';  // 更改鼠标样式为拖动状态
+        document.body.style.cursor = 'move';
     });
 
-    // 监听鼠标移动事件
     document.addEventListener('mousemove', function(e) {
         if (!isDragging) return;
-
         let newLeft = e.clientX - offsetX;
         let newTop = e.clientY - offsetY;
-
-        // 更新拖动元素的位置
         element.style.left = `${newLeft}px`;
         element.style.top = `${newTop}px`;
     });
 
-    // 监听鼠标松开事件
     document.addEventListener('mouseup', function() {
         isDragging = false;
-        document.body.style.cursor = '';  // 恢复光标样式
+        document.body.style.cursor = '';
     });
 }
 
