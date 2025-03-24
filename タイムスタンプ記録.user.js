@@ -709,108 +709,107 @@ listContainer.appendChild(heading);
 
 
 
+let ul = document.createElement("ul");
+ul.id = "timestamp-list";
+ul.style.listStyleType = "none";
+ul.style.padding = "0";
+ul.style.margin = "0";
+ul.style.textAlign = "center";
+listContainer.appendChild(ul);
+container.appendChild(listContainer);
 
-       let ul = document.createElement("ul");
-        ul.id = "timestamp-list";
-        ul.style.listStyleType = "none";
-        ul.style.padding = "0";
-        ul.style.margin = "0";
-        ul.style.textAlign = "center";
-        listContainer.appendChild(ul);
-        container.appendChild(listContainer);
+lockButton = document.createElement("button");
+lockButton.textContent = "ロック";
+lockButton.style.padding = "8px 10px";
+lockButton.style.background = "green";
+lockButton.style.color = "white";
+lockButton.style.border = "none";
+lockButton.style.cursor = "pointer";
+lockButton.style.fontSize = "16px";
+lockButton.style.fontWeight = "bold";
+lockButton.style.borderRadius = "6px";
+lockButton.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
+lockButton.style.marginTop = "3px";
+lockButton.style.transition = "background-color 0.3s, transform 0.2s";
+lockButton.onmouseover = function() {
+    lockButton.style.background = "darkgreen";
+};
+lockButton.onmouseleave = function() {
+    lockButton.style.background = "green";
+};
+lockButton.onmousedown = function() {
+    lockButton.style.transform = "scale(0.95)";
+};
+lockButton.onmouseup = function() {
+    lockButton.style.transform = "scale(1)";
+};
 
-        lockButton = document.createElement("button");
-        lockButton.textContent = "ロック";
-        lockButton.style.padding = "8px 10px";
-        lockButton.style.background = "green";
-        lockButton.style.color = "white";
-        lockButton.style.border = "none";
-        lockButton.style.cursor = "pointer";
-        lockButton.style.fontSize = "16px";
-        lockButton.style.fontWeight = "bold";
-        lockButton.style.borderRadius = "6px";
-        lockButton.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
-        lockButton.style.marginTop = "3px";
-        lockButton.style.transition = "background-color 0.3s, transform 0.2s";
-        lockButton.onmouseover = function() {
-            lockButton.style.background = "darkgreen";
-        };
-        lockButton.onmouseleave = function() {
-            lockButton.style.background = "green";
-        };
-        lockButton.onmousedown = function() {
-            lockButton.style.transform = "scale(0.95)";
-        };
-        lockButton.onmouseup = function() {
-            lockButton.style.transform = "scale(1)";
-        };
+lockButton.onclick = function() {
+    toggleLock();
+};
+container.appendChild(lockButton);
 
-        lockButton.onclick = function() {
-            toggleLock();
-        };
-        container.appendChild(lockButton);
+hideButton = document.createElement("button");
+hideButton.textContent = "隠す";
+hideButton.style.padding = "6px 6px";
+hideButton.style.background = "blue";
+hideButton.style.color = "white";
+hideButton.style.border = "none";
+hideButton.style.cursor = "pointer";
+hideButton.style.fontSize = "18px";
+hideButton.style.fontWeight = "bold";
+hideButton.style.borderRadius = "6px";
+hideButton.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
+hideButton.style.marginTop = "5px";
+hideButton.style.transition = "background-color 0.3s, transform 0.2s";
 
-        hideButton = document.createElement("button");
-        hideButton.textContent = "隠す";
-        hideButton.style.padding = "6px 6px";
-        hideButton.style.background = "blue";
-        hideButton.style.color = "white";
-        hideButton.style.border = "none";
-        hideButton.style.cursor = "pointer";
-        hideButton.style.fontSize = "18px";
-        hideButton.style.fontWeight = "bold";
-        hideButton.style.borderRadius = "6px";
-        hideButton.style.boxShadow = "2px 2px 6px rgba(0, 0, 0, 0.2)";
-        hideButton.style.marginTop = "5px";
-        hideButton.style.transition = "background-color 0.3s, transform 0.2s";
+hideButton.onmouseover = function() {
+    hideButton.style.background = "darkblue";
+};
+hideButton.onmouseleave = function() {
+    hideButton.style.background = "blue";
+};
+hideButton.onmousedown = function() {
+    hideButton.style.transform = "scale(0.95)";
+};
+hideButton.onmouseup = function() {
+    hideButton.style.transform = "scale(1)";
+};
 
-        hideButton.onmouseover = function() {
-            hideButton.style.background = "darkblue";
-        };
-        hideButton.onmouseleave = function() {
-            hideButton.style.background = "blue";
-        };
-        hideButton.onmousedown = function() {
-            hideButton.style.transform = "scale(0.95)";
-        };
-        hideButton.onmouseup = function() {
-            hideButton.style.transform = "scale(1)";
-        };
+hideButton.onclick = function() {
+    toggleVisibility();
+};
+container.appendChild(hideButton);
 
-        hideButton.onclick = function() {
-            toggleVisibility();
-        };
-        container.appendChild(hideButton);
+document.body.appendChild(container);
+makeDraggable(container);
+loadTimestamps();
+updateTimestampList();
 
-        document.body.appendChild(container);
-        makeDraggable(container);
-        loadTimestamps();
-        updateTimestampList();
+}
 
-    }
+function toggleLock() {
+    isLocked = !isLocked;
+    lockButton.textContent = isLocked ? "アンロック" : "ロック";
+    lockButton.style.background = isLocked ? "red" : "green";
+    lockButton.style.transition = "background-color 0.3s, transform 0.2s";
+    lockButton.onmouseover = function() {
+        lockButton.style.background = isLocked ? "darkred" : "darkgreen";
+    };
+    lockButton.onmouseleave = function() {
+        lockButton.style.background = isLocked ? "red" : "green";
+    };
 
-   function toggleLock() {
-       isLocked = !isLocked;
-       lockButton.textContent = isLocked ? "アンロック" : "ロック";
-       lockButton.style.background = isLocked ? "red" : "green";
-       lockButton.style.transition = "background-color 0.3s, transform 0.2s";
-       lockButton.onmouseover = function() {
-       lockButton.style.background = isLocked ? "darkred" : "darkgreen";
-       };
-       lockButton.onmouseleave = function() {
-       lockButton.style.background = isLocked ? "red" : "green";
-       };
+    lockButton.onmousedown = function() {
+        lockButton.style.background = isLocked ? "darkred" : "darkgreen";
+        lockButton.style.transform = "scale(0.95)";
+    };
 
-       lockButton.onmousedown = function() {
-       lockButton.style.background = isLocked ? "darkred" : "darkgreen";
-       lockButton.style.transform = "scale(0.95)";
-       };
-
-       lockButton.onmouseup = function() {
-       lockButton.style.background = isLocked ? "red" : "green";
-       lockButton.style.transform = "scale(1)";
-       };
-   }
+    lockButton.onmouseup = function() {
+        lockButton.style.background = isLocked ? "red" : "green";
+        lockButton.style.transform = "scale(1)";
+    };
+}
 
 function toggleSortOrder() {
     isAscending = !isAscending;
@@ -822,17 +821,25 @@ function toggleVisibility() {
     if (isHidden) {
         container.querySelectorAll('*').forEach(element => {
             if (element !== hideButton) {
-                element.style.visibility = "hidden";
+                // 使元素透明且禁用事件，不改變在版面上的位置
+                element.style.opacity = "0";
+                element.style.pointerEvents = "none";
             }
         });
+        // 同時讓 container 本身不攔截滑鼠事件
+        container.style.pointerEvents = "none";
+        // 讓 hideButton 保持可點擊
+        hideButton.style.pointerEvents = "auto";
         hideButton.textContent = "表示";
         hideButton.style.backgroundColor = "red";
     } else {
         container.querySelectorAll('*').forEach(element => {
             if (element !== hideButton) {
-                element.style.visibility = "visible";
+                element.style.opacity = "1";
+                element.style.pointerEvents = "auto";
             }
         });
+        container.style.pointerEvents = "auto";
         hideButton.textContent = "隠す";
         hideButton.style.backgroundColor = "blue";
     }
@@ -859,33 +866,33 @@ function toggleVisibility() {
 }
 
 
-    function copyAllTimestamps() {
-        let allTimestamps = timestamps.join('\n');
-        navigator.clipboard.writeText(allTimestamps).then(() => {
-            showCopySuccessMessage(allTimestamps);
-        }).catch(err => {
-            console.error('コピーに失敗しました', err);
-        });
-    }
+function copyAllTimestamps() {
+    let allTimestamps = timestamps.join('\n');
+    navigator.clipboard.writeText(allTimestamps).then(() => {
+        showCopySuccessMessage(allTimestamps);
+    }).catch(err => {
+        console.error('コピーに失敗しました', err);
+    });
+}
 
-    function showErrorMessage(message) {
-        alert(message);
-    }
+function showErrorMessage(message) {
+    alert(message);
+}
 
-    function showCopySuccessMessage(text) {
-        let messageBox = document.createElement("div");
-        messageBox.textContent = `コピーしました: ${text}`;
-        messageBox.style.position = "fixed";
-        messageBox.style.top = "10px";
-        messageBox.style.left = "50%";
-        messageBox.style.transform = "translateX(-50%)";
-        messageBox.style.padding = "10px 20px";
-        messageBox.style.backgroundColor = "#28a745";
-        messageBox.style.color = "white";
-        messageBox.style.fontSize = "14px";
-        messageBox.style.borderRadius = "5px";
-        messageBox.style.boxShadow = "2px 2px 8px rgba(0, 0, 0, 0.2)";
-        messageBox.style.zIndex = "9999";
+function showCopySuccessMessage(text) {
+    let messageBox = document.createElement("div");
+    messageBox.textContent = `コピーしました: ${text}`;
+    messageBox.style.position = "fixed";
+    messageBox.style.top = "10px";
+    messageBox.style.left = "50%";
+    messageBox.style.transform = "translateX(-50%)";
+    messageBox.style.padding = "10px 20px";
+    messageBox.style.backgroundColor = "#28a745";
+    messageBox.style.color = "white";
+    messageBox.style.fontSize = "14px";
+    messageBox.style.borderRadius = "5px";
+    messageBox.style.boxShadow = "2px 2px 8px rgba(0, 0, 0, 0.2)";
+    messageBox.style.zIndex = "9999";
 
     setTimeout(() => {
         messageBox.style.opacity = "0";
@@ -896,5 +903,5 @@ function toggleVisibility() {
 
     document.body.appendChild(messageBox);
 }
-    addUI();
+addUI();
 })();
