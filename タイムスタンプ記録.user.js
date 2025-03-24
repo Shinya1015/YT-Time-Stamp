@@ -681,6 +681,14 @@ function showConfirmModal() {
 
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
+
+     document.onmousemove = function (e) {
+        if (isDragging) {
+            let x = e.clientX - offsetX;
+            let y = e.clientY - offsetY;
+            modalContent.style.left = x + "px";
+            modalContent.style.top = y + "px";
+        }  };
     // 鼠标悬停和点击效果
     cancelButton.addEventListener("mouseover", function() {
         cancelButton.style.backgroundColor = "#666"; // 鼠标悬停时背景色变化
