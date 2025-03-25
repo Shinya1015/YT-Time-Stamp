@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      8.5
+// @version      9.0
 // @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
@@ -16,15 +16,22 @@
     let container, btn, lockButton, hideButton;
     let isLocked = false;
     let isAscending = false;
-    let isHidden = false;
+    let isHidden = localStorage.getItem('timestampHiddenState') === 'true';
+
 
     function loadTimestamps() {
+
         let storedTimestamps = localStorage.getItem('timestamps');
         if (storedTimestamps) {
             timestamps = JSON.parse(storedTimestamps);
         }
     }
 
+   function loadSettings() {
+    let storedTimestamps = localStorage.getItem('timestamps');
+    if (storedTimestamps) timestamps = JSON.parse(storedTimestamps);
+    // 不再處理隱藏狀態，因為已經在變數初始化時讀取
+}
     function saveTimestamps() {
         localStorage.setItem('timestamps', JSON.stringify(timestamps));
     }
@@ -429,8 +436,15 @@ function makeDraggable(element, allowDrag = true) {
         document.body.style.cursor = '';
     });
 }
-
+function toggleVisibility() {
+    isHidden = !isHidden;
+    applyHiddenState();
+    localStorage.setItem('timestampHiddenState', isHidden); // 保存當前狀態
+    hideButton.style.transform = "scale(0.95)";
+    setTimeout(() => hideButton.style.transform = "scale(1)", 100);
+}
     function addUI() {
+         if (isHidden) applyHiddenState();
         container = document.createElement("div");
         container.style.position = "fixed";
         container.style.top = "500px";
@@ -616,27 +630,58 @@ function showConfirmModal() {
     modal.style.left = "0";
     modal.style.width = "100%";
     modal.style.height = "100%";
-    modal.style.backgroundColor = "transparent"; // 设置背景为透明
+    modal.style.backgroundColor = "transparent";
     modal.style.display = "flex";
     modal.style.justifyContent = "center";
     modal.style.alignItems = "center";
     modal.style.zIndex = "10000";
 
-
     let modalContent = document.createElement("div");
     modalContent.style.backgroundColor = "#fff";
-    modalContent.style.padding = "15px";
+    modalContent.style.padding = "20px";
+     // 紅色粗邊框樣式
+    modalContent.style.border = "4px solid #FF3B30"; // 加粗紅色邊框 (4px)
+    modalContent.style.borderRadius = "12px"; // 圓角
+    modalContent.style.boxShadow = "0 5px 25px rgba(255, 59, 48, 0.3)"; // 紅色陰影強化效果
+
     modalContent.style.borderRadius = "8px";
-    modalContent.style.width = "280px";
+    modalContent.style.width = "300px";
     modalContent.style.textAlign = "center";
     modalContent.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.2)";
-    modalContent.style.cursor = "move";  // 设置光标为可以拖动
+    modalContent.style.cursor = "move"; // 關鍵：允許拖動
+    modalContent.style.position = "absolute"; // 讓拖動時可改變位置
+
     let message = document.createElement("p");
     message.textContent = "すべての記録を削除しますか？";
     message.style.fontSize = "16px"; // 調整字體大小
     message.style.fontWeight = "bold"; // 設置為粗體
     message.style.color = "red"; // 讓文字變紅色，提高可視性
     document.body.appendChild(message);
+   let isDragging = false;
+    let offsetX, offsetY;
+
+    modalContent.addEventListener('mousedown', function(e) {
+        if (e.target.tagName === 'BUTTON') return; // 避免按鈕觸發拖動
+        isDragging = true;
+        offsetX = e.clientX - modalContent.getBoundingClientRect().left;
+        offsetY = e.clientY - modalContent.getBoundingClientRect().top;
+    });
+ // 禁用默認拖選行為
+    modalContent.addEventListener('selectstart', function(e) {
+        if (!isDragging) return true; // 允許文字選中
+        e.preventDefault();
+        return false;
+    });
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        modalContent.style.left = (e.clientX - offsetX) + 'px';
+        modalContent.style.top = (e.clientY - offsetY) + 'px';
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+    });
+
 
     let buttonContainer = document.createElement("div");
     buttonContainer.style.marginTop = "15px";
@@ -646,21 +691,28 @@ function showConfirmModal() {
 
     let cancelButton = document.createElement("button");
     cancelButton.textContent = "いいえ";
-    cancelButton.style.padding = "8px 15px";
+    cancelButton.style.padding = "12px 30px";  // 加大按鈕尺寸
+    cancelButton.style.fontSize = "16px";      // 放大字體
+    cancelButton.style.width = "140px";       // 固定寬度
     cancelButton.style.backgroundColor = "#999";
-    cancelButton.style.color = "white";
+    cancelButton.style.color = "#202124";
+    cancelButton.style.fontWeight = "600";
     cancelButton.style.border = "none";
     cancelButton.style.cursor = "pointer";
-    cancelButton.style.borderRadius = "5px";
+    cancelButton.style.borderRadius = "6px";   // 圓角也可以稍微加大
 
     let confirmButton = document.createElement("button");
     confirmButton.textContent = "削除";
-    confirmButton.style.padding = "8px 15px";
+    confirmButton.style.padding = "12px 30px"; // 加大按鈕尺寸
+    confirmButton.style.fontSize = "16px";     // 放大字體
+    confirmButton.style.width = "140px";      // 固定寬度
     confirmButton.style.backgroundColor = "#e74c3c";
     confirmButton.style.color = "white";
+    confirmButton.style.textShadow = "0 1px 1px rgba(0, 0, 0, 0.3)";
+    confirmButton.style.fontWeight = "600";
     confirmButton.style.border = "none";
     confirmButton.style.cursor = "pointer";
-    confirmButton.style.borderRadius = "5px";
+    confirmButton.style.borderRadius = "6px";  // 圓角也可以稍微加大
 
     // 关闭模态框
     cancelButton.onclick = function () {
@@ -817,7 +869,7 @@ makeDraggable(container, true);
 makeDraggable(hideButton, false);
 loadTimestamps();
 updateTimestampList();
-
+applyHiddenState();
 }
 
 function toggleLock() {
@@ -848,33 +900,49 @@ function toggleSortOrder() {
     updateTimestampList();
 }
 
-function toggleVisibility() {
-    isHidden = !isHidden;
-    if (isHidden) {
-        container.querySelectorAll('*').forEach(element => {
-            if (element !== hideButton) {
-                // 使元素透明且禁用事件，不改變在版面上的位置
-                element.style.opacity = "0";
-                element.style.pointerEvents = "none";
-            }
-        });
-        // 同時讓 container 本身不攔截滑鼠事件
-        container.style.pointerEvents = "none";
-        // 讓 hideButton 保持可點擊
+
+function applyHiddenState() {
+    if (!container) return;
+
+    // 隱藏所有子元素「除了 hideButton」
+    Array.from(container.children).forEach(child => {
+        if (child !== hideButton) {  // 關鍵修改：排除 hideButton
+            child.style.opacity = isHidden ? "0" : "1";
+            child.style.pointerEvents = isHidden ? "none" : "auto";
+        }
+    });
+    // 永遠不隱藏 hideButton 本身
+    hideButton.style.opacity = "1";
+    hideButton.style.pointerEvents = "auto";
+    hideButton.textContent = isHidden ? "表示" : "隠す";
+    hideButton.style.backgroundColor = isHidden ? "red" : "blue";
+
+        if (isHidden) {
+            // 隱藏所有元素（除了hideButton）
+            container.querySelectorAll('*').forEach(element => {
+                if (element !== hideButton) {
+                    element.style.opacity = "0";
+                    element.style.pointerEvents = "none";
+                }
+            });
+            container.style.pointerEvents = "none";
+            hideButton.textContent = "表示";
+            hideButton.style.backgroundColor = "red";
+        } else {
+            // 顯示所有元素
+            container.querySelectorAll('*').forEach(element => {
+                if (element !== hideButton) {
+                    element.style.opacity = "1";
+                    element.style.pointerEvents = "auto";
+                }
+            });
+            container.style.pointerEvents = "auto";
+            hideButton.textContent = "隠す";
+            hideButton.style.backgroundColor = "blue";
+        }
+
+        // 確保hideButton始終可點擊
         hideButton.style.pointerEvents = "auto";
-        hideButton.textContent = "表示";
-        hideButton.style.backgroundColor = "red";
-    } else {
-        container.querySelectorAll('*').forEach(element => {
-            if (element !== hideButton) {
-                element.style.opacity = "1";
-                element.style.pointerEvents = "auto";
-            }
-        });
-        container.style.pointerEvents = "auto";
-        hideButton.textContent = "隠す";
-        hideButton.style.backgroundColor = "blue";
-    }
 
     hideButton.style.transition = "background-color 0.3s, transform 0.2s";
 
@@ -935,7 +1003,9 @@ function showCopySuccessMessage(text) {
 
     document.body.appendChild(messageBox);
 }
-addUI();
+loadSettings();
+    addUI();
+    updateTimestampList();
 })();
 
 
