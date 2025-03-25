@@ -269,7 +269,7 @@ function editTimestamp(index) {
 
     let saveButton = document.createElement("button");
     saveButton.textContent = "保存";
-    saveButton.style.padding = "8px 16px";
+    saveButton.style.padding = "8px 50px";
     saveButton.style.backgroundColor = "#28a745";
     saveButton.style.color = "white";
     saveButton.style.border = "none";
@@ -929,20 +929,7 @@ function showConfirmModal() {
         hideButton.style.transition = "all 0.3s ease";
         hideButton.style.flex = "0 0 60px"; // flex-grow:0, flex-shrink:0, flex-basis:60px
 
-        hideButton.onmouseover = function() {
-            hideButton.style.background = "linear-gradient(to bottom, #1976D2, #1565C0)";
-            hideButton.style.boxShadow = "0 3px 8px rgba(0,0,0,0.3)";
-        };
-        hideButton.onmouseleave = function() {
-            hideButton.style.background = "linear-gradient(to bottom, #2196F3, #1976D2)";
-            hideButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-        };
-        hideButton.onmousedown = function() {
-            hideButton.style.transform = "scale(0.98)";
-        };
-        hideButton.onmouseup = function() {
-            hideButton.style.transform = "scale(1)";
-        };
+
 
         hideButton.onclick = function() {
             toggleVisibility();
