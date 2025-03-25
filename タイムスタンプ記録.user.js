@@ -227,6 +227,7 @@ timestamps.forEach((t, index) => {
 function editTimestamp(index) {
     if (document.getElementById("edit-container")) return;
 
+
     let currentTimestamp = timestamps[index];
     let editContainer = document.createElement("div");
     editContainer.id = "edit-container";
@@ -243,16 +244,16 @@ function editTimestamp(index) {
     editContainer.style.flexDirection = "column";
     editContainer.style.alignItems = "center";
     editContainer.style.cursor = "move";
-    editContainer.style.width = "200px";  // 修改宽度
-    editContainer.style.height = "200px";  // 修改高度
-    editContainer.style.userSelect = "none";  // 禁止选中文本
+    editContainer.style.width = "400px";  // 增加寬度
+    editContainer.style.height = "auto";  // 改為自動高度
+    editContainer.style.userSelect = "none";
 
     let inputField = document.createElement("textarea");
     inputField.value = currentTimestamp;
     inputField.style.fontSize = "18px";
     inputField.style.padding = "10px";
-    inputField.style.width = "150px";
-    inputField.style.height = "150px";
+    inputField.style.width = "350px";  // 增加寬度
+    inputField.style.height = "60px";  // 減少高度
     inputField.style.marginBottom = "10px";
     inputField.style.lineHeight = "1.5";
     inputField.style.border = "1px solid #ccc";
