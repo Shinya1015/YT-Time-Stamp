@@ -591,7 +591,7 @@ sortButton.onclick = function () {
 
 let deleteAllButton = document.createElement("button");
 deleteAllButton.textContent = "×";
-deleteAllButton.style.padding = "5px 10px";
+deleteAllButton.style.padding = "5px 12px";
 deleteAllButton.style.fontSize = "16px";
 deleteAllButton.classList.add("no-drag");
 deleteAllButton.style.background = "linear-gradient(to bottom, #FF6F61, #FF3B30)";
