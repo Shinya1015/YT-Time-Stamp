@@ -831,7 +831,7 @@ function showConfirmModal() {
         lockButton = document.createElement("button");
         lockButton.textContent = "ロック"; // 初始狀態為"鎖定"
         lockButton.style.padding = "8px 16px";
-        lockButton.style.width = "80px";
+        lockButton.style.width = "60px";
         lockButton.style.background = "linear-gradient(to bottom, #4CAF50, #388E3C)"; // 綠色表示未鎖定
         lockButton.style.color = "white";
         lockButton.style.border = "none";
@@ -916,8 +916,8 @@ function showConfirmModal() {
         // 隱藏按鈕 (右邊)
         hideButton = document.createElement("button");
         hideButton.textContent = "隠す";
-        hideButton.style.padding = "8px 16px";
-        hideButton.style.width = "80px";
+        hideButton.style.padding = "8px 16px"; // 恢復原始內邊距
+        hideButton.style.width = "auto";
         hideButton.style.background = "linear-gradient(to bottom, #2196F3, #1976D2)";
         hideButton.style.color = "white";
         hideButton.style.border = "none";
@@ -927,7 +927,7 @@ function showConfirmModal() {
         hideButton.style.borderRadius = "6px";
         hideButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
         hideButton.style.transition = "all 0.3s ease";
-        hideButton.style.flex = "1";
+        hideButton.style.flex = "0 0 60px"; // flex-grow:0, flex-shrink:0, flex-basis:60px
 
         hideButton.onmouseover = function() {
             hideButton.style.background = "linear-gradient(to bottom, #1976D2, #1565C0)";
