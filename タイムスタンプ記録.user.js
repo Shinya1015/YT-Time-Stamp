@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      9.5
+// @version      9.6
 // @description  タイムスタンプを記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
@@ -18,7 +18,28 @@
     let isAscending = false;
     let isHidden = localStorage.getItem('timestampHiddenState') === 'true';
 
+ // 新增：保存容器位置到localStorage
+    function saveContainerPosition() {
+        if (!container) return;
+        const position = {
+            left: container.style.left,
+            top: container.style.top
+        };
+        localStorage.setItem('timestampContainerPosition', JSON.stringify(position));
+    }
 
+    // 新增：從localStorage加載容器位置
+    function loadContainerPosition() {
+        const savedPosition = localStorage.getItem('timestampContainerPosition');
+        if (savedPosition) {
+            try {
+                return JSON.parse(savedPosition);
+            } catch (e) {
+                console.error('位置情報の読み込みに失敗しました', e);
+            }
+        }
+        return null;
+    }
     function loadTimestamps() {
 
         let storedTimestamps = localStorage.getItem('timestamps');
@@ -433,8 +454,11 @@ function editTimestamp(index) {
         });
 
         document.addEventListener('mouseup', function() {
-            isDragging = false;
-            document.body.style.cursor = '';
+            if (isDragging) {
+                isDragging = false;
+                document.body.style.cursor = '';
+                // 新增：拖動結束時保存位置
+                saveContainerPosition();}
         });
     }
     function toggleVisibility() {
@@ -449,8 +473,18 @@ function editTimestamp(index) {
         if (isHidden) applyHiddenState();
         container = document.createElement("div");
         container.style.position = "absolute";
-        container.style.top = "500px";
-        container.style.left = "380px";
+
+            // 新增：從localStorage加載保存的位置
+        const savedPosition = loadContainerPosition();
+        if (savedPosition && savedPosition.left && savedPosition.top) {
+            container.style.left = savedPosition.left;
+            container.style.top = savedPosition.top;
+        } else {
+            // 默認位置
+            container.style.top = "500px";
+            container.style.left = "380px";
+        }
+        
         container.style.zIndex = "9999";
         container.style.display = "flex";
         container.style.flexDirection = "column";
@@ -1031,9 +1065,12 @@ function showConfirmModal() {
         document.body.appendChild(messageBox);
     }
     loadSettings();
+    loadTimestamps();
     addUI();
     updateTimestampList();
 })();
+
+
 
 
 
