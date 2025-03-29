@@ -19,6 +19,8 @@
     let isDraggingContainer = false;
     let dragHandle = null;
     let isDraggingFromHideButton = false;
+    let dragStartTime = 0;
+    const DRAG_THRESHOLD = 100; // milliseconds threshold for drag detection
 
     function saveContainerPosition() {
         if (!container) return;
@@ -494,13 +496,11 @@
     }
 
     function toggleVisibility() {
-        if (!isDraggingFromHideButton) {
-            isHidden = !isHidden;
-            applyHiddenState();
-            localStorage.setItem('timestampHiddenState', isHidden);
-            hideButton.style.transform = "scale(0.95)";
-            setTimeout(() => hideButton.style.transform = "scale(1)", 100);
-        }
+        isHidden = !isHidden;
+        applyHiddenState();
+        localStorage.setItem('timestampHiddenState', isHidden);
+        hideButton.style.transform = "scale(0.95)";
+        setTimeout(() => hideButton.style.transform = "scale(1)", 100);
     }
 
     function addUI() {
@@ -937,19 +937,17 @@
         let globalMouseMoveHandler, globalMouseUpHandler;
 
         hideButton.addEventListener('mousedown', function(e) {
-            if (!isLocked && e.button === 0) {
-                e.preventDefault();
-                e.stopPropagation();
-                isDraggingFromHideButton = true;
-                let rect = container.getBoundingClientRect();
-                offsetX = e.clientX - rect.left;
-                offsetY = e.clientY - rect.top;
+            if (e.button === 0) {
+                dragStartTime = Date.now();
+                isDraggingFromHideButton = false;
+                offsetX = e.clientX - container.getBoundingClientRect().left;
+                offsetY = e.clientY - container.getBoundingClientRect().top;
                 document.body.style.cursor = 'move';
                 document.onselectstart = () => false;
 
-                // 添加全局事件監聽
                 globalMouseMoveHandler = function(e) {
-                    if (isDraggingFromHideButton) {
+                    if (Date.now() - dragStartTime > DRAG_THRESHOLD) {
+                        isDraggingFromHideButton = true;
                         let newLeft = e.clientX - offsetX;
                         let newTop = e.clientY - offsetY;
                         container.style.left = `${newLeft}px`;
@@ -961,25 +959,21 @@
                     if (isDraggingFromHideButton) {
                         e.preventDefault();
                         e.stopPropagation();
-                        isDraggingFromHideButton = false;
-                        document.body.style.cursor = '';
-                        document.onselectstart = null;
                         saveContainerPosition();
-
-                        // 移除全局事件監聽
-                        document.removeEventListener('mousemove', globalMouseMoveHandler);
-                        document.removeEventListener('mouseup', globalMouseUpHandler);
+                    } else if (Date.now() - dragStartTime < DRAG_THRESHOLD) {
+                        toggleVisibility();
                     }
+
+                    isDraggingFromHideButton = false;
+                    document.body.style.cursor = '';
+                    document.onselectstart = null;
+
+                    document.removeEventListener('mousemove', globalMouseMoveHandler);
+                    document.removeEventListener('mouseup', globalMouseUpHandler);
                 };
 
                 document.addEventListener('mousemove', globalMouseMoveHandler);
                 document.addEventListener('mouseup', globalMouseUpHandler);
-            }
-        });
-
-        hideButton.addEventListener('click', function(e) {
-            if (!isDraggingFromHideButton) {
-                toggleVisibility();
             }
         });
 
