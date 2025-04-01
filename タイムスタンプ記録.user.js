@@ -22,6 +22,7 @@
     let dragStartTime = 0;
     const DRAG_THRESHOLD = 100;
     let firstTimeUser = localStorage.getItem('timestampFirstTime') === null;
+    let currentEditIndex = -1;
 
     // コンテナの位置を保存
     function saveContainerPosition() {
@@ -98,8 +99,6 @@
         }
     }
 
-
-
     // タイムスタンプリストを更新
     function updateTimestampList() {
         let list = document.getElementById("timestamp-list");
@@ -144,11 +143,11 @@
                 jumpIcon.textContent = "▶️";
                 jumpIcon.style.marginRight = "8px";
                 jumpIcon.style.cursor = "pointer";
-                jumpIcon.style.fontSize = "14px";
+                jumpIcon.style.fontSize = "20px";
                 jumpIcon.title = "クリックでジャンプ";
 
                 jumpIcon.onclick = function(e) {
-                        jumpToTimestamp(t);
+                    jumpToTimestamp(t);
                 };
 
                 let deleteButton = document.createElement("button");
@@ -185,265 +184,120 @@
                     deleteTimestamp(index);
                 };
 
-                let editButton = document.createElement("button");
-                editButton.textContent = "編集";
-                editButton.classList.add("edit-btn");
-                editButton.style.fontSize = "14px";
-                editButton.style.padding = "10px 20px";
-                editButton.style.marginRight = "6px";
-                editButton.style.background = "#FFDD57";
-                editButton.style.color = "black";
-                editButton.style.border = "1px solid #F39C12";
-                editButton.style.fontWeight = "bold";
-                editButton.style.transition = "background-color 0.3s, transform 0.2s";
+                let displayContainer = document.createElement("div");
+                displayContainer.style.display = "flex";
+                displayContainer.style.alignItems = "center";
+                displayContainer.style.flexGrow = "1";
+                displayContainer.style.minWidth = "250px";
+                displayContainer.style.marginRight = "20px";
 
-                editButton.onmouseover = function() {
-                    editButton.style.background = "#FFCF57";
-                };
+                let displayText = document.createElement("div");
+                displayText.style.textAlign = "left"; // 文字靠左對齊
+                displayText.style.paddingLeft = "10px"; // 左側增加內邊距
+                displayText.textContent = t;
+                displayText.style.flexGrow = "1";
+                displayText.style.padding = "10px 2px";
+                displayText.style.fontSize = "16px";
+                displayText.style.background = "#A3C9D9";
+                displayText.style.color = "black";
+                displayText.style.fontWeight = "bold";
+                displayText.style.border = "1px solid #9BBED4";
+                displayText.style.whiteSpace = "nowrap";
+                displayText.style.overflowX = "auto";
+                displayText.style.cursor = "text";
+                displayText.title = "左クリックで編集 / Ctrl+クリックでジャンプ / 右クリックメニュー";
 
-                editButton.onmouseleave = function() {
-                    editButton.style.background = "#FFDD57";
-                };
+                let inputField = document.createElement("input");
+                inputField.type = "text";
+                inputField.value = t;
+                inputField.style.display = "none";
+                inputField.style.flexGrow = "1";
+                inputField.style.padding = "10px 2px";
+                inputField.style.fontSize = "16px";
+                inputField.style.background = "#88B8D9";
+                inputField.style.border = "1px solid #7AA8C9";
 
-                editButton.onmousedown = function() {
-                    editButton.style.background = "#F39C12";
-                    editButton.style.transform = "scale(0.95)";
-                };
-
-                editButton.onmouseup = function() {
-                    editButton.style.background = "#FFCF57";
-                    editButton.style.transform = "scale(1)";
-                };
-
-                editButton.onclick = function() {
-                    editTimestamp(index);
-                };
-
-                let displayText = `${t}`;
-                let copyButton = document.createElement("button");
-                copyButton.textContent = displayText;
-                copyButton.title = "Ctrl+クリックでジャンプ / 右クリックメニュー";  // 加入這行
-                copyButton.classList.add("copy-btn");
-                copyButton.style.fontSize = "16px";
-                copyButton.style.padding = "10px 2px";
-                copyButton.style.marginRight = "20px";
-                copyButton.style.background = "#A3C9D9";
-                copyButton.style.color = "black";
-                copyButton.style.fontWeight = "bold";
-                copyButton.style.border = "1px solid #9BBED4";
-                copyButton.style.whiteSpace = "nowrap";
-                copyButton.style.writingMode = "horizontal-tb";
-
-                copyButton.style.minWidth = "250px";  // 設定最小寬度
-                copyButton.style.width = "auto";     // 寬度自動調整
-                copyButton.style.flexGrow = "1";     // 允許按鈕伸展
-                copyButton.style.overflowX = "auto";
-                copyButton.style.textOverflow = "clip";
-                copyButton.style.display = "inline-flex";
-                copyButton.style.justifyContent = "flex-start";
-                copyButton.style.alignItems = "center";
-                copyButton.style.overflow = "hidden";
-                copyButton.style.overflowX = "auto";
-
-                copyButton.onmouseover = function() {
-                    copyButton.style.background = "#88B8D9";
-                };
-
-                copyButton.onmouseleave = function() {
-                    copyButton.style.background = "#A3C9D9";
-                };
-
-                copyButton.onmousedown = function() {
-                    copyButton.style.background = "#7AA8C9";
-                };
-
-                copyButton.onmouseup = function() {
-                    copyButton.style.background = "#88B8D9";
-                };
-
-                copyButton.onclick = function(e) {
+                displayText.onclick = function(e) {
                     if (e.ctrlKey) {
                         jumpToTimestamp(t);
                     } else {
-                        copyToClipboard(displayText);
+                        // 進入編輯模式
+                        currentEditIndex = index;
+                        displayText.style.display = "none";
+                        inputField.style.display = "block";
+                        inputField.focus();
+                        inputField.select();
                     }
                 };
 
-                copyButton.oncontextmenu = function(e) {
+                inputField.addEventListener("keydown", function(e) {
+                    if (e.key === "Enter") {
+                        // 保存編輯
+                        let newTimestamp = inputField.value;
+                        if (newTimestamp && newTimestamp !== t) {
+                            timestamps[index] = newTimestamp;
+                            saveTimestamps();
+                            displayText.textContent = newTimestamp;
+                        }
+                        inputField.style.display = "none";
+                        displayText.style.display = "block";
+                        currentEditIndex = -1;
+                    } else if (e.key === "Escape") {
+                        // 取消編輯
+                        inputField.style.display = "none";
+                        displayText.style.display = "block";
+                        currentEditIndex = -1;
+                    }
+                });
+
+                inputField.addEventListener("blur", function() {
+                    // 失去焦點時保存編輯
+                    if (currentEditIndex === index) {
+                        let newTimestamp = inputField.value;
+                        if (newTimestamp && newTimestamp !== t) {
+                            timestamps[index] = newTimestamp;
+                            saveTimestamps();
+                            displayText.textContent = newTimestamp;
+                        }
+                        inputField.style.display = "none";
+                        displayText.style.display = "block";
+                        currentEditIndex = -1;
+                    }
+                });
+
+                displayText.oncontextmenu = function(e) {
                     e.preventDefault();
-                    showTimestampContextMenu(e, t, copyButton);
+                    showTimestampContextMenu(e, t, displayText);
                 };
 
-                let container = document.createElement("div");
-                container.style.display = "flex";
-                container.style.alignItems = "center";
-                container.style.flexWrap = "nowrap";
-                container.style.width = "100%";
-                container.style.minWidth = "400px";
-                container.style.padding = "0";
-                container.style.overflow = "visible";
-                container.style.flexGrow = "1";  // 新增這行，允許容器伸展
+                displayContainer.appendChild(displayText);
+                displayContainer.appendChild(inputField);
 
-                container.appendChild(jumpIcon);
-                container.appendChild(deleteButton);
-                container.appendChild(editButton);
-                container.appendChild(copyButton);
+                let itemContainer = document.createElement("div");
+                itemContainer.style.display = "flex";
+                itemContainer.style.alignItems = "center";
+                itemContainer.style.flexWrap = "nowrap";
+                itemContainer.style.width = "100%";
+                itemContainer.style.minWidth = "400px";
+                itemContainer.style.padding = "0";
+                itemContainer.style.overflow = "visible";
+                itemContainer.style.flexGrow = "1";
 
-                listItem.appendChild(container);
+                itemContainer.appendChild(jumpIcon);
+                itemContainer.appendChild(deleteButton);
+                itemContainer.appendChild(displayContainer);
+
+                listItem.appendChild(itemContainer);
                 list.appendChild(listItem);
 
                 let updateWidth = () => {
-                    let width = container.scrollWidth;
-                    container.style.width = `${width + 20}px`;
+                    let width = itemContainer.scrollWidth;
+                    itemContainer.style.width = `${width + 20}px`;
                 };
 
                 setTimeout(updateWidth, 100);
             });
         }
-    }
-
-    // タイムスタンプを編集
-    function editTimestamp(index) {
-        if (document.getElementById("edit-container")) return;
-
-        let currentTimestamp = timestamps[index];
-        let editContainer = document.createElement("div");
-        editContainer.id = "edit-container";
-        editContainer.style.position = "fixed";
-        editContainer.style.top = "50%";
-        editContainer.style.left = "50%";
-        editContainer.style.transform = "translate(-50%, -50%)";
-        editContainer.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-        editContainer.style.color = "white";
-        editContainer.style.padding = "20px";
-        editContainer.style.borderRadius = "8px";
-        editContainer.style.zIndex = "9999";
-        editContainer.style.display = "flex";
-        editContainer.style.flexDirection = "column";
-        editContainer.style.alignItems = "center";
-        editContainer.style.cursor = "move";
-        editContainer.style.width = "400px";
-        editContainer.style.height = "auto";
-        editContainer.style.userSelect = "none";
-
-        let inputField = document.createElement("textarea");
-        inputField.value = currentTimestamp;
-        inputField.style.fontSize = "18px";
-        inputField.style.padding = "10px";
-        inputField.style.width = "350px";
-        inputField.style.height = "60px";
-        inputField.style.marginBottom = "10px";
-        inputField.style.lineHeight = "1.5";
-        inputField.style.border = "1px solid #ccc";
-        inputField.style.borderRadius = "5px";
-        inputField.style.overflow = "auto";
-        inputField.style.resize = "none";
-        inputField.style.whiteSpace = "pre-wrap";
-        inputField.style.textAlign = "left";
-
-        let buttonContainer = document.createElement("div");
-        buttonContainer.style.display = "flex";
-        buttonContainer.style.gap = "10px";
-
-        let saveButton = document.createElement("button");
-        saveButton.textContent = "保存";
-        saveButton.style.padding = "8px 50px";
-        saveButton.style.backgroundColor = "#28a745";
-        saveButton.style.color = "white";
-        saveButton.style.border = "none";
-        saveButton.style.cursor = "pointer";
-        saveButton.style.fontWeight = "bold";
-
-        let cancelButton = document.createElement("button");
-        cancelButton.textContent = "キャンセル";
-        cancelButton.style.padding = "8px 16px";
-        cancelButton.style.backgroundColor = "#dc3545";
-        cancelButton.style.color = "white";
-        cancelButton.style.border = "none";
-        cancelButton.style.cursor = "pointer";
-        cancelButton.style.fontWeight = "bold";
-
-        saveButton.onclick = function() {
-            let newTimestamp = inputField.value;
-            if (newTimestamp && newTimestamp !== currentTimestamp) {
-                timestamps[index] = newTimestamp;
-                saveTimestamps();
-                updateTimestampList();
-            }
-            document.body.removeChild(editContainer);
-        };
-
-        cancelButton.onclick = function() {
-            document.body.removeChild(editContainer);
-        };
-
-        buttonContainer.appendChild(cancelButton);
-        buttonContainer.appendChild(saveButton);
-        editContainer.appendChild(inputField);
-        editContainer.appendChild(buttonContainer);
-        document.body.appendChild(editContainer);
-
-        let isDragging = false;
-        let offsetX, offsetY;
-
-        editContainer.onmousedown = function(e) {
-            if (e.target === buttonContainer || e.target === cancelButton || e.target === saveButton || e.target === inputField) {
-                return;
-            }
-
-            isDragging = true;
-            offsetX = e.clientX - editContainer.getBoundingClientRect().left;
-            offsetY = e.clientY - editContainer.getBoundingClientRect().top;
-
-            document.body.style.pointerEvents = "none";
-            editContainer.style.cursor = "grabbing";
-        };
-
-        document.onmousemove = function(e) {
-            if (isDragging) {
-                let x = e.clientX - offsetX;
-                let y = e.clientY - offsetY;
-                editContainer.style.left = x + "px";
-                editContainer.style.top = y + "px";
-            }
-        };
-
-        document.onmouseup = function() {
-            isDragging = false;
-            editContainer.style.cursor = "move";
-            document.body.style.pointerEvents = "auto";
-        };
-
-        inputField.addEventListener("keydown", function(e) {
-            if (e.key === "Enter") {
-                saveButton.click();
-            }
-        });
-
-        let dragIsActive = false;
-        let dragOffsetX, dragOffsetY;
-
-        editContainer.addEventListener("mousedown", function(e) {
-            if (e.target === inputField || e.target === buttonContainer || e.target === saveButton || e.target === cancelButton) return;
-            dragIsActive = true;
-            dragOffsetX = e.clientX - editContainer.getBoundingClientRect().left;
-            dragOffsetY = e.clientY - editContainer.getBoundingClientRect().top;
-            editContainer.style.cursor = "grabbing";
-        });
-
-        document.addEventListener("mousemove", function(e) {
-            if (dragIsActive) {
-                let left = e.clientX - dragOffsetX;
-                let top = e.clientY - dragOffsetY;
-                editContainer.style.left = left + "px";
-                editContainer.style.top = top + "px";
-            }
-        });
-
-        document.addEventListener("mouseup", function() {
-            dragIsActive = false;
-            editContainer.style.cursor = "move";
-        });
     }
 
     // クリップボードにコピー
@@ -555,7 +409,7 @@
         menu.style.minWidth = '150px';
 
         const jumpOption = document.createElement('div');
-        jumpOption.textContent = 'この時間にジャンプ';
+        jumpOption.textContent = 'タイムラインジャンプ';
         jumpOption.style.padding = '8px 15px';
         jumpOption.style.cursor = 'pointer';
         jumpOption.style.fontSize = '14px';
@@ -572,7 +426,7 @@
         };
 
         const copyOption = document.createElement('div');
-        copyOption.textContent = 'タイムスタンプをコピー';
+        copyOption.textContent = 'コピー';
         copyOption.style.padding = '8px 15px';
         copyOption.style.cursor = 'pointer';
         copyOption.style.fontSize = '14px';
@@ -1201,7 +1055,7 @@
         // 使用説明ツールチップを追加
         setTimeout(() => {
             const tooltip = document.createElement('div');
-            tooltip.textContent = 'ヒント: Ctrl+クリックでジャンプ、右クリックでメニュー';
+            tooltip.textContent = 'ヒント: 左クリックで編集 / Ctrl+クリックでジャンプ / 右クリックでメニュー';
             tooltip.style.position = 'fixed';
             tooltip.style.bottom = '20px';
             tooltip.style.right = '20px';
