@@ -1095,7 +1095,7 @@
 
         hideButton = document.createElement("button");
         hideButton.textContent = "隠す";
-        hideButton.style.padding = "10px 16px";
+        hideButton.style.padding = "8px 16px";
         hideButton.style.width = "auto";
         hideButton.style.background = "linear-gradient(to bottom, #2196F3, #1976D2)";
         hideButton.style.color = "white";
@@ -1107,6 +1107,7 @@
         hideButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
         hideButton.style.transition = "all 0.3s ease";
         hideButton.style.flex = "0 0 60px";
+        hideButton.style.writingMode = "horizontal-tb";
 
         let globalMouseMoveHandler, globalMouseUpHandler;
 
