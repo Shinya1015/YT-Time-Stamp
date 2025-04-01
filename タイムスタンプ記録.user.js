@@ -221,6 +221,7 @@
                 let displayText = `${t}`;
                 let copyButton = document.createElement("button");
                 copyButton.textContent = displayText;
+                copyButton.title = "Ctrl+クリックでジャンプ / 右クリックメニュー";  // 加入這行
                 copyButton.classList.add("copy-btn");
                 copyButton.style.fontSize = "16px";
                 copyButton.style.padding = "10px 2px";
