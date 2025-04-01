@@ -230,41 +230,39 @@
                     }
                 };
 
+                // 在 updateTimestampList 函數中修改輸入框的事件處理
                 inputField.addEventListener("keydown", function(e) {
                     if (e.key === "Enter") {
-                        // 保存編輯
-                        let newTimestamp = inputField.value;
-                        if (newTimestamp && newTimestamp !== t) {
-                            timestamps[index] = newTimestamp;
-                            saveTimestamps();
+                        const newTimestamp = inputField.value;
+                        if (newTimestamp !== t) {
+                            timestamps[index] = newTimestamp; // 直接更新陣列
+                            saveTimestamps(); // 立即保存
                             displayText.textContent = newTimestamp;
+                            // 更新跳轉功能的時間值
+                            jumpIcon.onclick = function(e) {
+                                jumpToTimestamp(newTimestamp);
+                            };
                         }
                         inputField.style.display = "none";
                         displayText.style.display = "block";
-                        currentEditIndex = -1;
-                    } else if (e.key === "Escape") {
-                        // 取消編輯
-                        inputField.style.display = "none";
-                        displayText.style.display = "block";
-                        currentEditIndex = -1;
+                        e.preventDefault(); // 防止預設行為影響
                     }
                 });
 
                 inputField.addEventListener("blur", function() {
-                    // 失去焦點時保存編輯
-                    if (currentEditIndex === index) {
-                        let newTimestamp = inputField.value;
-                        if (newTimestamp && newTimestamp !== t) {
-                            timestamps[index] = newTimestamp;
-                            saveTimestamps();
-                            displayText.textContent = newTimestamp;
-                        }
-                        inputField.style.display = "none";
-                        displayText.style.display = "block";
-                        currentEditIndex = -1;
+                    const newTimestamp = inputField.value;
+                    if (newTimestamp !== t) {
+                        timestamps[index] = newTimestamp;
+                        saveTimestamps();
+                        displayText.textContent = newTimestamp;
+                        // 更新跳轉功能的時間值
+                        jumpIcon.onclick = function(e) {
+                            jumpToTimestamp(newTimestamp);
+                        };
                     }
+                    inputField.style.display = "none";
+                    displayText.style.display = "block";
                 });
-
                 displayText.oncontextmenu = function(e) {
                     e.preventDefault();
                     showTimestampContextMenu(e, t, displayText);
@@ -343,24 +341,33 @@
     }
 
     // タイムスタンプにジャンプ
-    function jumpToTimestamp(timestamp) {
-        const timePattern = /^(\d+):(\d{2}):(\d{2})/;
-        const match = timestamp.match(timePattern);
+   function jumpToTimestamp(timestamp) {
+    // 支援格式：
+    // 1. "1:23:45 [01]"（舊格式）
+    // 2. "2:23:45 [01]"（編輯後格式）
+    // 3. "2:23:45 註解"（自訂格式）
+    const timePattern = /^(\d+):(\d{2}):(\d{2})/; // 嚴格匹配開頭
+    const match = timestamp.match(timePattern);
 
-        if (match) {
-            const hours = parseInt(match[1]);
-            const minutes = parseInt(match[2]);
-            const seconds = parseInt(match[3]);
-            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+    if (match) {
+        const hours = parseInt(match[1], 10);   // 確保用 10 進制解析
+        const minutes = parseInt(match[2], 10);
+        const seconds = parseInt(match[3], 10);
 
-            const video = document.querySelector('video');
-            if (video) {
-                video.currentTime = totalSeconds;
-                video.play();
-                showJumpSuccessMessage(timestamp);
-            }
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        console.log(`解析時間: ${hours}:${minutes}:${seconds} → ${totalSeconds}秒`); // 除錯用
+
+        const video = document.querySelector('video');
+        if (video) {
+            video.currentTime = totalSeconds;
+            video.play();
+            showJumpSuccessMessage(timestamp);
         }
+    } else {
+        console.error("無法解析時間戳記:", timestamp); // 除錯用
+        showErrorMessage("時間格式錯誤！請使用「時:分:秒」格式，例如：2:23:45");
     }
+}
 
     // ジャンプ成功メッセージを表示
     function showJumpSuccessMessage(timestamp) {
@@ -408,6 +415,9 @@
         menu.style.padding = '5px 0';
         menu.style.minWidth = '150px';
 
+        // 使用當前顯示的文本作為時間戳記（可能是編輯後的內容）
+        const currentTimestamp = button.textContent || timestamp;
+
         const jumpOption = document.createElement('div');
         jumpOption.textContent = 'タイムラインジャンプ';
         jumpOption.style.padding = '8px 15px';
@@ -421,9 +431,10 @@
             jumpOption.style.backgroundColor = 'transparent';
         };
         jumpOption.onclick = function() {
-            jumpToTimestamp(timestamp);
+            jumpToTimestamp(currentTimestamp);  // 使用當前顯示的文本
             menu.remove();
         };
+
 
         const copyOption = document.createElement('div');
         copyOption.textContent = 'コピー';
@@ -438,7 +449,7 @@
             copyOption.style.backgroundColor = 'transparent';
         };
         copyOption.onclick = function() {
-            copyToClipboard(timestamp);
+            copyToClipboard(currentTimestamp);  // 使用當前顯示的文本
             menu.remove();
         };
 
