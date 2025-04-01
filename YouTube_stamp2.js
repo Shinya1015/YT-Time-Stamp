@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         YouTube 時間標記助手 (完整修正版)
+// @name         YouTubeタイムスタンプ
 // @namespace    http://tampermonkey.net/
 // @version      4.93
-// @description  時間標記工具，完整保留編輯區內容，修正大小保存和按鈕位置問題
-// @author       You
+// @description  時間スタンプツール
+// @author       あなた
 // @match        *://www.youtube.com/watch*
 // @grant        GM_setValue
 // @grant        GM_getValue
