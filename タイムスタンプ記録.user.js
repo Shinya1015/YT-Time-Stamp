@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      9.6
-// @description  タイムスタンプを記録
+// @version      9.8
+// @description  タイムスタンプを記録してクリックでジャンプ
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
 // ==/UserScript==
@@ -20,8 +20,10 @@
     let dragHandle = null;
     let isDraggingFromHideButton = false;
     let dragStartTime = 0;
-    const DRAG_THRESHOLD = 100; // milliseconds threshold for drag detection
+    const DRAG_THRESHOLD = 100;
+    let firstTimeUser = localStorage.getItem('timestampFirstTime') === null;
 
+    // コンテナの位置を保存
     function saveContainerPosition() {
         if (!container) return;
         const listContainer = container.querySelector('div[style*="resize"]');
@@ -36,6 +38,7 @@
         localStorage.setItem('timestampContainerPosition', JSON.stringify(position));
     }
 
+    // コンテナの位置を読み込み
     function loadContainerPosition() {
         const savedPosition = localStorage.getItem('timestampContainerPosition');
         if (savedPosition) {
@@ -53,6 +56,7 @@
         };
     }
 
+    // タイムスタンプを読み込み
     function loadTimestamps() {
         let storedTimestamps = localStorage.getItem('timestamps');
         if (storedTimestamps) {
@@ -60,6 +64,7 @@
         }
     }
 
+    // 設定を読み込み
     function loadSettings() {
         let storedTimestamps = localStorage.getItem('timestamps');
         if (storedTimestamps) timestamps = JSON.parse(storedTimestamps);
@@ -70,6 +75,7 @@
         }
     }
 
+    // タイムスタンプを記録
     function recordTimestamp() {
         let video = document.querySelector('video');
         if (video) {
@@ -81,11 +87,48 @@
             timestamps.unshift(formattedTimestamp);
             saveTimestamps();
             updateTimestampList();
+
+            // 初回ユーザー向けヒント表示
+            if (firstTimeUser && timestamps.length === 1) {
+                showFirstTimeHint();
+                localStorage.setItem('timestampFirstTime', 'false');
+                firstTimeUser = false;
+            }
         } else {
             showErrorMessage("動画が見つかりませんでした。ページをリフレッシュして再試行してください！");
         }
     }
 
+    // 初回ユーザー向けヒント表示
+    function showFirstTimeHint() {
+        const hint = document.createElement('div');
+        hint.innerHTML = '試してみよう！<br>▶️ をCtrl+クリックでこの時間にジャンプ';
+        hint.style.position = 'fixed';
+        hint.style.bottom = '100px';
+        hint.style.right = '20px';
+        hint.style.backgroundColor = '#FFEB3B';
+        hint.style.color = '#000';
+        hint.style.padding = '15px';
+        hint.style.borderRadius = '8px';
+        hint.style.fontSize = '16px';
+        hint.style.fontWeight = 'bold';
+        hint.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        hint.style.zIndex = '99999';
+        hint.style.animation = 'fadeIn 0.5s';
+        hint.style.textAlign = 'center';
+        hint.style.border = '2px solid #FFC107';
+
+        document.body.appendChild(hint);
+
+        setTimeout(() => {
+            hint.style.opacity = '0';
+            setTimeout(() => {
+                hint.remove();
+            }, 1000);
+        }, 5000);
+    }
+
+    // タイムスタンプリストを更新
     function updateTimestampList() {
         let list = document.getElementById("timestamp-list");
         if (list) {
@@ -99,6 +142,18 @@
                 timestamps.sort().reverse();
             }
 
+            // 空の状態のガイドを表示
+            if (timestamps.length === 0 && firstTimeUser) {
+                const emptyGuide = document.createElement('div');
+                emptyGuide.innerHTML = '記録したタイムスタンプがここに表示されます<br><span style="font-size:24px">⬇️</span>';
+                emptyGuide.style.textAlign = 'center';
+                emptyGuide.style.padding = '20px';
+                emptyGuide.style.color = '#666';
+                emptyGuide.style.fontSize = '14px';
+                list.appendChild(emptyGuide);
+                return;
+            }
+
             timestamps.forEach((t, index) => {
                 let listItem = document.createElement("li");
                 listItem.style.display = "flex";
@@ -110,6 +165,18 @@
                 listItem.style.flexWrap = "nowrap";
                 listItem.style.whiteSpace = "nowrap";
                 listItem.style.textOverflow = "ellipsis";
+
+                // ジャンプアイコンを追加
+                let jumpIcon = document.createElement("span");
+                jumpIcon.textContent = "▶️";
+                jumpIcon.style.marginRight = "8px";
+                jumpIcon.style.cursor = "pointer";
+                jumpIcon.style.fontSize = "14px";
+                jumpIcon.title = "クリックでジャンプ";
+
+                jumpIcon.onclick = function(e) {
+                        jumpToTimestamp(t);
+                };
 
                 let deleteButton = document.createElement("button");
                 deleteButton.textContent = "削除";
@@ -221,8 +288,17 @@
                     copyButton.style.background = "#88B8D9";
                 };
 
-                copyButton.onclick = function() {
-                    copyToClipboard(displayText);
+                copyButton.onclick = function(e) {
+                    if (e.ctrlKey) {
+                        jumpToTimestamp(t);
+                    } else {
+                        copyToClipboard(displayText);
+                    }
+                };
+
+                copyButton.oncontextmenu = function(e) {
+                    e.preventDefault();
+                    showTimestampContextMenu(e, t, copyButton);
                 };
 
                 let container = document.createElement("div");
@@ -233,6 +309,7 @@
                 container.style.minWidth = "400px";
                 container.style.padding = "0";
 
+                container.appendChild(jumpIcon);
                 container.appendChild(deleteButton);
                 container.appendChild(editButton);
                 container.appendChild(copyButton);
@@ -250,6 +327,7 @@
         }
     }
 
+    // タイムスタンプを編集
     function editTimestamp(index) {
         if (document.getElementById("edit-container")) return;
 
@@ -393,6 +471,7 @@
         });
     }
 
+    // クリップボードにコピー
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
             showCustomCopySuccessMessage(text);
@@ -401,6 +480,7 @@
         });
     }
 
+    // カスタムコピー成功メッセージを表示
     function showCustomCopySuccessMessage(text) {
         let messageBox = document.createElement("div");
         messageBox.textContent = `コピー成功: ${text}`;
@@ -426,12 +506,128 @@
         document.body.appendChild(messageBox);
     }
 
+    // タイムスタンプを削除
     function deleteTimestamp(index) {
         timestamps.splice(index, 1);
         saveTimestamps();
         updateTimestampList();
     }
 
+    // タイムスタンプにジャンプ
+    function jumpToTimestamp(timestamp) {
+        const timePattern = /^(\d+):(\d{2}):(\d{2})/;
+        const match = timestamp.match(timePattern);
+
+        if (match) {
+            const hours = parseInt(match[1]);
+            const minutes = parseInt(match[2]);
+            const seconds = parseInt(match[3]);
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+            const video = document.querySelector('video');
+            if (video) {
+                video.currentTime = totalSeconds;
+                video.play();
+                showJumpSuccessMessage(timestamp);
+            }
+        }
+    }
+
+    // ジャンプ成功メッセージを表示
+    function showJumpSuccessMessage(timestamp) {
+        let messageBox = document.createElement("div");
+        messageBox.textContent = `ジャンプ成功: ${timestamp}`;
+        messageBox.style.position = "fixed";
+        messageBox.style.top = "10px";
+        messageBox.style.left = "50%";
+        messageBox.style.transform = "translateX(-50%)";
+        messageBox.style.padding = "10px 20px";
+        messageBox.style.backgroundColor = "#4285F4";
+        messageBox.style.color = "white";
+        messageBox.style.fontSize = "14px";
+        messageBox.style.borderRadius = "5px";
+        messageBox.style.boxShadow = "2px 2px 8px rgba(0, 0, 0, 0.2)";
+        messageBox.style.zIndex = "9999";
+
+        setTimeout(() => {
+            messageBox.style.opacity = "0";
+            setTimeout(() => {
+                messageBox.remove();
+            }, 500);
+        }, 2000);
+
+        document.body.appendChild(messageBox);
+    }
+
+    // タイムスタンプの右クリックメニューを表示
+    function showTimestampContextMenu(e, timestamp, button) {
+        const existingMenu = document.getElementById('timestamp-context-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+
+        const menu = document.createElement('div');
+        menu.id = 'timestamp-context-menu';
+        menu.style.position = 'fixed';
+        menu.style.left = `${e.clientX}px`;
+        menu.style.top = `${e.clientY}px`;
+        menu.style.backgroundColor = 'white';
+        menu.style.border = '1px solid #ddd';
+        menu.style.borderRadius = '4px';
+        menu.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+        menu.style.zIndex = '10000';
+        menu.style.padding = '5px 0';
+        menu.style.minWidth = '150px';
+
+        const jumpOption = document.createElement('div');
+        jumpOption.textContent = 'この時間にジャンプ';
+        jumpOption.style.padding = '8px 15px';
+        jumpOption.style.cursor = 'pointer';
+        jumpOption.style.fontSize = '14px';
+
+        jumpOption.onmouseover = function() {
+            jumpOption.style.backgroundColor = '#f0f0f0';
+        };
+        jumpOption.onmouseout = function() {
+            jumpOption.style.backgroundColor = 'transparent';
+        };
+        jumpOption.onclick = function() {
+            jumpToTimestamp(timestamp);
+            menu.remove();
+        };
+
+        const copyOption = document.createElement('div');
+        copyOption.textContent = 'タイムスタンプをコピー';
+        copyOption.style.padding = '8px 15px';
+        copyOption.style.cursor = 'pointer';
+        copyOption.style.fontSize = '14px';
+
+        copyOption.onmouseover = function() {
+            copyOption.style.backgroundColor = '#f0f0f0';
+        };
+        copyOption.onmouseout = function() {
+            copyOption.style.backgroundColor = 'transparent';
+        };
+        copyOption.onclick = function() {
+            copyToClipboard(timestamp);
+            menu.remove();
+        };
+
+        menu.appendChild(jumpOption);
+        menu.appendChild(copyOption);
+        document.body.appendChild(menu);
+
+        const closeMenu = function() {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        };
+
+        setTimeout(() => {
+            document.addEventListener('click', closeMenu);
+        }, 10);
+    }
+
+    // ドラッグ可能にする
     function makeDraggable(element, allowDrag = true) {
         let dragHandle = document.createElement("div");
         dragHandle.textContent = "長押しして移動";
@@ -495,6 +691,7 @@
         });
     }
 
+    // 表示/非表示を切り替え
     function toggleVisibility() {
         isHidden = !isHidden;
         applyHiddenState();
@@ -503,6 +700,7 @@
         setTimeout(() => hideButton.style.transform = "scale(1)", 100);
     }
 
+    // UIを追加
     function addUI() {
         if (isHidden) applyHiddenState();
         container = document.createElement("div");
@@ -874,13 +1072,13 @@
         lockButton.onmouseover = function() {
             lockButton.style.background = isLocked
                 ? "linear-gradient(to bottom, #D32F2F, #B71C1C)"
-            : "linear-gradient(to bottom, #388E3C, #2E7D32)";
+                : "linear-gradient(to bottom, #388E3C, #2E7D32)";
             lockButton.style.boxShadow = "0 3px 8px rgba(0,0,0,0.3)";
         };
         lockButton.onmouseleave = function() {
             lockButton.style.background = isLocked
                 ? "linear-gradient(to bottom, #FF5252, #D32F2F)"
-            : "linear-gradient(to bottom, #4CAF50, #388E3C)";
+                : "linear-gradient(to bottom, #4CAF50, #388E3C)";
             lockButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
         };
         lockButton.onmousedown = function() {
@@ -933,7 +1131,6 @@
         hideButton.style.transition = "all 0.3s ease";
         hideButton.style.flex = "0 0 60px";
 
-        // 改進的拖動處理
         let globalMouseMoveHandler, globalMouseUpHandler;
 
         hideButton.addEventListener('mousedown', function(e) {
@@ -1017,12 +1214,38 @@
 
             hideButton.textContent = isHidden ? "表示" : "隠す";
             hideButton.style.background = isHidden ? "linear-gradient(to bottom, #FF5252, #D32F2F)"
-            : "linear-gradient(to bottom, #2196F3, #1976D2)";
+                : "linear-gradient(to bottom, #2196F3, #1976D2)";
 
             container.style.pointerEvents = isHidden ? "none" : "auto";
         }
+
+        // 使用説明ツールチップを追加
+        setTimeout(() => {
+            const tooltip = document.createElement('div');
+            tooltip.textContent = 'ヒント: Ctrl+クリックでジャンプ、右クリックでメニュー';
+            tooltip.style.position = 'fixed';
+            tooltip.style.bottom = '20px';
+            tooltip.style.right = '20px';
+            tooltip.style.backgroundColor = 'rgba(0,0,0,0.7)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '8px 12px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '14px';
+            tooltip.style.zIndex = '9999';
+            tooltip.style.animation = 'fadeIn 0.5s';
+
+            document.body.appendChild(tooltip);
+
+            setTimeout(() => {
+                tooltip.style.opacity = '0';
+                setTimeout(() => {
+                    tooltip.remove();
+                }, 500);
+            }, 5000);
+        }, 3000);
     }
 
+    // すべてのタイムスタンプをコピー
     function copyAllTimestamps() {
         let allTimestamps = timestamps.join('\n');
         navigator.clipboard.writeText(allTimestamps).then(() => {
@@ -1032,10 +1255,12 @@
         });
     }
 
+    // エラーメッセージを表示
     function showErrorMessage(message) {
         alert(message);
     }
 
+    // コピー成功メッセージを表示
     function showCopySuccessMessage(text) {
         let messageBox = document.createElement("div");
         messageBox.textContent = `コピーしました: ${text}`;
@@ -1061,10 +1286,22 @@
         document.body.appendChild(messageBox);
     }
 
+    // タイムスタンプを保存
     function saveTimestamps() {
         localStorage.setItem('timestamps', JSON.stringify(timestamps));
     }
 
+    // フェードインアニメーションを追加
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // 初期化
     loadSettings();
     loadTimestamps();
     addUI();
