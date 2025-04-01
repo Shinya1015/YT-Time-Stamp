@@ -137,6 +137,7 @@
                 listItem.style.flexWrap = "nowrap";
                 listItem.style.whiteSpace = "nowrap";
                 listItem.style.textOverflow = "ellipsis";
+                listItem.style.flexGrow = "1";
 
                 // ジャンプアイコンを追加
                 let jumpIcon = document.createElement("span");
@@ -233,15 +234,14 @@
                 copyButton.style.whiteSpace = "nowrap";
                 copyButton.style.writingMode = "horizontal-tb";
 
-                copyButton.style.width = "250px";
+                copyButton.style.minWidth = "250px";  // 設定最小寬度
+                copyButton.style.width = "auto";     // 寬度自動調整
+                copyButton.style.flexGrow = "1";     // 允許按鈕伸展
                 copyButton.style.overflowX = "auto";
                 copyButton.style.textOverflow = "clip";
-                copyButton.style.whiteSpace = "nowrap";
-
                 copyButton.style.display = "inline-flex";
                 copyButton.style.justifyContent = "flex-start";
                 copyButton.style.alignItems = "center";
-
                 copyButton.style.overflow = "hidden";
                 copyButton.style.overflowX = "auto";
 
@@ -281,6 +281,8 @@
                 container.style.width = "100%";
                 container.style.minWidth = "400px";
                 container.style.padding = "0";
+                container.style.overflow = "visible";
+                container.style.flexGrow = "1";  // 新增這行，允許容器伸展
 
                 container.appendChild(jumpIcon);
                 container.appendChild(deleteButton);
@@ -739,6 +741,8 @@
             min-width: 200px;
             min-height: 100px;
             user-select: none;
+            display: flex;
+            flex-direction: column;
         `;
 
         listContainer.addEventListener('mouseup', function() {
@@ -1091,7 +1095,7 @@
 
         hideButton = document.createElement("button");
         hideButton.textContent = "隠す";
-        hideButton.style.padding = "8px 16px";
+        hideButton.style.padding = "10px 16px";
         hideButton.style.width = "auto";
         hideButton.style.background = "linear-gradient(to bottom, #2196F3, #1976D2)";
         hideButton.style.color = "white";
