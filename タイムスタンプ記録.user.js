@@ -90,7 +90,6 @@
 
             // 初回ユーザー向けヒント表示
             if (firstTimeUser && timestamps.length === 1) {
-                showFirstTimeHint();
                 localStorage.setItem('timestampFirstTime', 'false');
                 firstTimeUser = false;
             }
@@ -99,34 +98,7 @@
         }
     }
 
-    // 初回ユーザー向けヒント表示
-    function showFirstTimeHint() {
-        const hint = document.createElement('div');
-        hint.innerHTML = '試してみよう！<br>▶️ をCtrl+クリックでこの時間にジャンプ';
-        hint.style.position = 'fixed';
-        hint.style.bottom = '100px';
-        hint.style.right = '20px';
-        hint.style.backgroundColor = '#FFEB3B';
-        hint.style.color = '#000';
-        hint.style.padding = '15px';
-        hint.style.borderRadius = '8px';
-        hint.style.fontSize = '16px';
-        hint.style.fontWeight = 'bold';
-        hint.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-        hint.style.zIndex = '99999';
-        hint.style.animation = 'fadeIn 0.5s';
-        hint.style.textAlign = 'center';
-        hint.style.border = '2px solid #FFC107';
 
-        document.body.appendChild(hint);
-
-        setTimeout(() => {
-            hint.style.opacity = '0';
-            setTimeout(() => {
-                hint.remove();
-            }, 1000);
-        }, 5000);
-    }
 
     // タイムスタンプリストを更新
     function updateTimestampList() {
