@@ -1107,6 +1107,7 @@
         hideButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
         hideButton.style.transition = "all 0.3s ease";
         hideButton.style.flex = "0 0 60px";
+        hideButton.style.whiteSpace = "nowrap";
         hideButton.style.writingMode = "horizontal-tb";
 
         let globalMouseMoveHandler, globalMouseUpHandler;
