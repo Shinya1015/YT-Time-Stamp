@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      9.8
-// @description  タイムスタンプを記録してクリックでジャンプ
+// @version      9.9
+// @description  タイムスタンプを記録してクリックでジャンプ、時間調整機能付き
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
 // ==/UserScript==
@@ -99,6 +99,61 @@
         }
     }
 
+    // 時間調整関数 (+1s / -1s)
+    function adjustTimestamp(index, adjustment) {
+        const timestamp = timestamps[index];
+        const timePattern = /^(\d+):(\d{2}):(\d{2})/;
+        const match = timestamp.match(timePattern);
+
+        if (match) {
+            let hours = parseInt(match[1], 10);
+            let minutes = parseInt(match[2], 10);
+            let seconds = parseInt(match[3], 10);
+
+            // 秒数を調整
+            seconds += adjustment;
+
+            // 秒数が60を超えた場合または0未満の場合の処理
+            if (seconds >= 60) {
+                minutes += Math.floor(seconds / 60);
+                seconds = seconds % 60;
+            } else if (seconds < 0) {
+                minutes -= Math.ceil(Math.abs(seconds) / 60);
+                seconds = 60 - (Math.abs(seconds) % 60);
+                if (seconds === 60) seconds = 0;
+            }
+
+            // 分数が60を超えた場合または0未満の場合の処理
+            if (minutes >= 60) {
+                hours += Math.floor(minutes / 60);
+                minutes = minutes % 60;
+            } else if (minutes < 0) {
+                hours -= Math.ceil(Math.abs(minutes) / 60);
+                minutes = 60 - (Math.abs(minutes) % 60);
+                if (minutes === 60) minutes = 0;
+            }
+
+            // 時間が負にならないようにする
+            if (hours < 0) {
+                hours = 0;
+                minutes = 0;
+                seconds = 0;
+            }
+
+            // 元のフォーマットを保持（[数字]部分）
+            const bracketPart = timestamp.match(/\[\d+\]/);
+            const newBracketPart = bracketPart ? bracketPart[0] : `[${(index + 1).toString().padStart(2, '0')}]`;
+
+            const newTimestamp = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} ${newBracketPart}`;
+            timestamps[index] = newTimestamp;
+            saveTimestamps();
+            updateTimestampList();
+
+            // 調整後の時間にジャンプ
+            jumpToTimestamp(newTimestamp);
+        }
+    }
+
     // タイムスタンプリストを更新
     function updateTimestampList() {
         let list = document.getElementById("timestamp-list");
@@ -150,11 +205,78 @@
                     jumpToTimestamp(t);
                 };
 
+
+                // 時間調整ボタン (-1s)
+                let minusButton = document.createElement("button");
+                minusButton.textContent = "-1s";
+                minusButton.style.padding = "10px 12px";
+                minusButton.style.marginRight = "6px";
+                minusButton.style.background = "#FFB6C1";
+                minusButton.style.color = "black";
+                minusButton.style.border = "1px solid #FF1493";
+                minusButton.style.fontWeight = "bold";
+                minusButton.style.transition = "background-color 0.3s, transform 0.2s";
+
+                minusButton.onmouseover = function() {
+                    minusButton.style.background = "#FF9AAB";
+                };
+
+                minusButton.onmouseleave = function() {
+                    minusButton.style.background = "#FFB6C1";
+                };
+
+                minusButton.onmousedown = function() {
+                    minusButton.style.background = "#FF7C92";
+                    minusButton.style.transform = "scale(0.95)";
+                };
+
+                minusButton.onmouseup = function() {
+                    minusButton.style.background = "#FF9AAB";
+                    minusButton.style.transform = "scale(1)";
+                };
+
+                minusButton.onclick = function(e) {
+                    e.stopPropagation();
+                    adjustTimestamp(index, -1);
+                };
+
+                 // 時間調整ボタン (+1s)
+                let plusButton = document.createElement("button");
+                plusButton.textContent = "+1s";
+                plusButton.style.padding = "10px 12px";
+                plusButton.style.marginRight = "4px";
+                plusButton.style.background = "#A8E6A0";
+                plusButton.style.color = "black";
+                plusButton.style.border = "1px solid #3A8F12";
+                plusButton.style.fontWeight = "bold";
+                plusButton.style.transition = "background-color 0.3s, transform 0.2s";
+
+                plusButton.onmouseover = function() {
+                    plusButton.style.background = "#9AE89F";
+                };
+
+                plusButton.onmouseleave = function() {
+                    plusButton.style.background = "#A8E6A0";
+                };
+
+                plusButton.onmousedown = function() {
+                    plusButton.style.background = "#74B94F";
+                    plusButton.style.transform = "scale(0.95)";
+                };
+
+                plusButton.onmouseup = function() {
+                    plusButton.style.background = "#9AE89F";
+                    plusButton.style.transform = "scale(1)";
+                };
+
+                plusButton.onclick = function(e) {
+                    e.stopPropagation();
+                    adjustTimestamp(index, 1);
+                };
+
                 let deleteButton = document.createElement("button");
                 deleteButton.textContent = "削除";
-                deleteButton.classList.add("delete-btn");
-                deleteButton.style.fontSize = "14px";
-                deleteButton.style.padding = "10px 20px";
+                deleteButton.style.padding = "10px 12px";
                 deleteButton.style.marginRight = "6px";
                 deleteButton.style.background = "#FF6B6B";
                 deleteButton.style.color = "black";
@@ -192,8 +314,8 @@
                 displayContainer.style.marginRight = "20px";
 
                 let displayText = document.createElement("div");
-                displayText.style.textAlign = "left"; // 文字靠左對齊
-                displayText.style.paddingLeft = "10px"; // 左側增加內邊距
+                displayText.style.textAlign = "left";
+                displayText.style.paddingLeft = "10px";
                 displayText.textContent = t;
                 displayText.style.flexGrow = "1";
                 displayText.style.padding = "10px 2px";
@@ -230,13 +352,12 @@
                     }
                 };
 
-                // 在 updateTimestampList 函數中修改輸入框的事件處理
                 inputField.addEventListener("keydown", function(e) {
                     if (e.key === "Enter") {
                         const newTimestamp = inputField.value;
                         if (newTimestamp !== t) {
-                            timestamps[index] = newTimestamp; // 直接更新陣列
-                            saveTimestamps(); // 立即保存
+                            timestamps[index] = newTimestamp;
+                            saveTimestamps();
                             displayText.textContent = newTimestamp;
                             // 更新跳轉功能的時間值
                             jumpIcon.onclick = function(e) {
@@ -245,7 +366,7 @@
                         }
                         inputField.style.display = "none";
                         displayText.style.display = "block";
-                        e.preventDefault(); // 防止預設行為影響
+                        e.preventDefault();
                     }
                 });
 
@@ -255,7 +376,6 @@
                         timestamps[index] = newTimestamp;
                         saveTimestamps();
                         displayText.textContent = newTimestamp;
-                        // 更新跳轉功能的時間值
                         jumpIcon.onclick = function(e) {
                             jumpToTimestamp(newTimestamp);
                         };
@@ -282,6 +402,8 @@
                 itemContainer.style.flexGrow = "1";
 
                 itemContainer.appendChild(jumpIcon);
+                itemContainer.appendChild(minusButton);
+                itemContainer.appendChild(plusButton);
                 itemContainer.appendChild(deleteButton);
                 itemContainer.appendChild(displayContainer);
 
@@ -341,33 +463,29 @@
     }
 
     // タイムスタンプにジャンプ
-   function jumpToTimestamp(timestamp) {
-    // 支援格式：
-    // 1. "1:23:45 [01]"（舊格式）
-    // 2. "2:23:45 [01]"（編輯後格式）
-    // 3. "2:23:45 註解"（自訂格式）
-    const timePattern = /^(\d+):(\d{2}):(\d{2})/; // 嚴格匹配開頭
-    const match = timestamp.match(timePattern);
+    function jumpToTimestamp(timestamp) {
+        const timePattern = /^(\d+):(\d{2}):(\d{2})/;
+        const match = timestamp.match(timePattern);
 
-    if (match) {
-        const hours = parseInt(match[1], 10);   // 確保用 10 進制解析
-        const minutes = parseInt(match[2], 10);
-        const seconds = parseInt(match[3], 10);
+        if (match) {
+            const hours = parseInt(match[1], 10);
+            const minutes = parseInt(match[2], 10);
+            const seconds = parseInt(match[3], 10);
 
-        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-        console.log(`解析時間: ${hours}:${minutes}:${seconds} → ${totalSeconds}秒`); // 除錯用
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            console.log(`解析時間: ${hours}:${minutes}:${seconds} → ${totalSeconds}秒`);
 
-        const video = document.querySelector('video');
-        if (video) {
-            video.currentTime = totalSeconds;
-            video.play();
-            showJumpSuccessMessage(timestamp);
+            const video = document.querySelector('video');
+            if (video) {
+                video.currentTime = totalSeconds;
+                video.play();
+                showJumpSuccessMessage(timestamp);
+            }
+        } else {
+            console.error("無法解析時間戳記:", timestamp);
+            showErrorMessage("時間格式錯誤！請使用「時:分:秒」格式，例如：2:23:45");
         }
-    } else {
-        console.error("無法解析時間戳記:", timestamp); // 除錯用
-        showErrorMessage("時間格式錯誤！請使用「時:分:秒」格式，例如：2:23:45");
     }
-}
 
     // ジャンプ成功メッセージを表示
     function showJumpSuccessMessage(timestamp) {
@@ -415,7 +533,6 @@
         menu.style.padding = '5px 0';
         menu.style.minWidth = '150px';
 
-        // 使用當前顯示的文本作為時間戳記（可能是編輯後的內容）
         const currentTimestamp = button.textContent || timestamp;
 
         const jumpOption = document.createElement('div');
@@ -431,10 +548,9 @@
             jumpOption.style.backgroundColor = 'transparent';
         };
         jumpOption.onclick = function() {
-            jumpToTimestamp(currentTimestamp);  // 使用當前顯示的文本
+            jumpToTimestamp(currentTimestamp);
             menu.remove();
         };
-
 
         const copyOption = document.createElement('div');
         copyOption.textContent = 'コピー';
@@ -449,7 +565,7 @@
             copyOption.style.backgroundColor = 'transparent';
         };
         copyOption.onclick = function() {
-            copyToClipboard(currentTimestamp);  // 使用當前顯示的文本
+            copyToClipboard(currentTimestamp);
             menu.remove();
         };
 
