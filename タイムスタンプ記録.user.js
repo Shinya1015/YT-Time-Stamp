@@ -1214,18 +1214,11 @@ function updateTotalLiveDuration() {
         applyHiddenState();
 
  // ライブ配信の場合は配信時間を監視
-        const observer = new MutationObserver(function(mutations) {
- if (document.querySelector('.ytp-live')) {
-    const video = document.querySelector('video');
-    if (video) {
-        initialLiveTime = video.currentTime;
-        liveStartTime = new Date(Date.now() - initialLiveTime * 1000);
-    }
-    if (!liveDurationInterval) {
-        liveDurationInterval = setInterval(updateTotalLiveDuration, 1000);
-        updateTotalLiveDuration(); // 立即更新
-    }
-} else {
+const observer = new MutationObserver(() => {
+  if (document.querySelector('.ytp-live')) {
+    updateTotalLiveDuration();
+  }
+ else {
     // 如果不是直播，仍然顯示時間（但從影片當前時間計算）
     const video = document.querySelector('video');
     if (video) {
@@ -1373,4 +1366,5 @@ function updateTotalLiveDuration() {
     loadTimestamps();
     addUI();
     updateTimestampList();
+
 })();
