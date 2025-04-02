@@ -24,6 +24,12 @@
     let firstTimeUser = localStorage.getItem('timestampFirstTime') === null;
     let currentEditIndex = -1;
 
+
+    let totalLiveDuration = "00:00:00";
+    let durationUpdateInterval = null;
+    let liveStartTime = null;
+    let liveDurationInterval = null;
+    let initialLiveTime = 0;
     // コンテナの位置を保存
     function saveContainerPosition() {
         if (!container) return;
@@ -75,7 +81,22 @@
             isLocked = storedLockState === 'true';
         }
     }
+ // ライブ配信の総時間を更新
 
+function updateTotalLiveDuration() {
+    const video = document.querySelector('video');
+    if (video) {
+        const currentTime = video.currentTime;
+        const hours = Math.floor(currentTime / 3600);
+        const minutes = Math.floor((currentTime % 3600) / 60);
+        const seconds = Math.floor(currentTime % 60);
+        totalLiveDuration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        const durationDisplay = document.getElementById('total-duration-display');
+        if (durationDisplay) {
+            durationDisplay.textContent = `配信時間: ${totalLiveDuration}`;
+        }
+    }
+}
     // タイムスタンプを記録
     function recordTimestamp() {
         let video = document.querySelector('video');
@@ -420,6 +441,14 @@
         }
     }
 
+    // ビデオの現在時刻からフォーマットされたタイムスタンプを生成
+
+    function formatTimeFromVideo(currentTime, index) {
+        let hours = Math.floor(currentTime / 3600);
+        let minutes = Math.floor((currentTime % 3600) / 60);
+        let seconds = Math.floor(currentTime % 60);
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} [${(index + 1).toString().padStart(2, '0')}]`;
+    }
     // クリップボードにコピー
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
@@ -672,6 +701,20 @@
         container.style.background = "transparent";
         container.style.pointerEvents = "auto";
 
+        // 配信時間表示用の要素を追加
+
+        let durationDisplay = document.createElement("div");
+        durationDisplay.id = "total-duration-display";
+        durationDisplay.textContent = "配信時間: 00:00:00";
+        durationDisplay.style.padding = "8px 16px";
+        durationDisplay.style.background = "rgba(0, 0, 0, 0.7)";
+        durationDisplay.style.color = "white";
+        durationDisplay.style.borderRadius = "4px";
+        durationDisplay.style.marginBottom = "5px";
+        durationDisplay.style.fontSize = "14px";
+        durationDisplay.style.fontWeight = "bold";
+        durationDisplay.style.display = "block"; // 初期状態では非表示
+
         btn = document.createElement("button");
         btn.textContent = "タイムスタンプ記録";
         btn.style.padding = "10px 50px";
@@ -705,6 +748,29 @@
         };
 
         btn.onclick = recordTimestamp;
+
+        btn.onclick = function() {
+
+            recordTimestamp();
+
+            // ライブ配信の場合は配信時間表示を表示
+            if (document.querySelector('.ytp-live')) {
+                const video = document.querySelector('video');
+                if (video) {
+                    initialLiveTime = video.currentTime;
+                    liveStartTime = new Date(Date.now() - initialLiveTime * 1000);
+                }
+                durationDisplay.style.display = "block";
+                if (!liveDurationInterval) {
+                    liveDurationInterval = setInterval(updateTotalLiveDuration, 1000);
+                    updateTotalLiveDuration(); // 即時更新
+                }
+            }
+        };
+
+
+        container.appendChild(durationDisplay);
+
         container.appendChild(btn);
         document.body.appendChild(container);
 
@@ -1146,6 +1212,47 @@
         loadTimestamps();
         updateTimestampList();
         applyHiddenState();
+
+ // ライブ配信の場合は配信時間を監視
+        const observer = new MutationObserver(function(mutations) {
+ if (document.querySelector('.ytp-live')) {
+    const video = document.querySelector('video');
+    if (video) {
+        initialLiveTime = video.currentTime;
+        liveStartTime = new Date(Date.now() - initialLiveTime * 1000);
+    }
+    if (!liveDurationInterval) {
+        liveDurationInterval = setInterval(updateTotalLiveDuration, 1000);
+        updateTotalLiveDuration(); // 立即更新
+    }
+} else {
+    // 如果不是直播，仍然顯示時間（但從影片當前時間計算）
+    const video = document.querySelector('video');
+    if (video) {
+        updateTotalLiveDuration();
+    }
+}
+        });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        // 初期状態でライブ配信をチェック
+        if (document.querySelector('.ytp-live')) {
+            const durationDisplay = document.getElementById('total-duration-display');
+            if (durationDisplay) {
+                durationDisplay.style.display = "block";
+            }
+            const video = document.querySelector('video');
+            if (video && !liveStartTime) {
+                initialLiveTime = video.currentTime;
+                liveStartTime = new Date(Date.now() - initialLiveTime * 1000);
+            }
+            if (!liveDurationInterval) {
+                liveDurationInterval = setInterval(updateTotalLiveDuration, 1000);
+                updateTotalLiveDuration(); // 即時更新
+            }
+        }
 
         function toggleVisibility() {
             isHidden = !isHidden;
