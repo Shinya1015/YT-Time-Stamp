@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      11.20
-// @description  タイムスタンプ記録
+// @version      11.20-mod-final-no-comments
+// @description  タイムスタンプ記録 (右端表示要素修正 + ドラッグ解放時の誤クリック防止 + 隠し時のクリック透過)
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
 // @run-at       document-idle
@@ -22,10 +22,10 @@
     let isHidden = localStorage.getItem('timestampHiddenState') === 'true';
     let firstTimeUser = localStorage.getItem('timestampFirstTime') === null;
     let currentTimeInterval = null;
-    // isLive removed
     let observer = null;
     let dragStartTime = 0;
     let isDraggingFromHideButton = false;
+    let hideButtonDragged = false;
     let editorChangeTimeout = null;
     let hideButtonLastViewportPos = { left: 0, top: 0 };
     let isDraggingModal = false;
@@ -39,13 +39,12 @@
     let containerResizeObserver = null;
     let resizeTimeout = null;
 
-
     const DRAG_THRESHOLD = 150;
+    const DRAG_MOVE_THRESHOLD = 5;
     const EDITOR_DEBOUNCE_MS = 400;
     const RESIZE_DEBOUNCE_MS = 100;
     const TIME_REGEX = /^(\d+):(\d{2}):(\d{2})/;
     const MIN_PANE_WIDTH = 100;
-
 
     function loadState() {
         const storedTimestamps = localStorage.getItem('timestamps');
@@ -54,9 +53,7 @@
         isHidden = localStorage.getItem('timestampHiddenState') === 'true';
         firstTimeUser = localStorage.getItem('timestampFirstTime') === null;
         sortState = null;
-
         applySavedPaneWidths();
-
         if (bulkEditor && displayListElement) {
              populateEditorFromTimestamps();
              renderTimestampList();
@@ -93,7 +90,6 @@
             displayPane.style.flexBasis = '55%';
         }
     }
-
 
     function saveTimestamps() {
         try {
@@ -310,7 +306,6 @@
                     return h * 3600 + m * 60 + s;
                 }
             } catch (e) {
-                // Ignore errors
             }
         }
         return null;
@@ -498,10 +493,14 @@
 
         resizerElement.style.display = isLocked ? 'none' : 'block';
         resizerElement.style.cursor = isLocked ? 'default' : 'col-resize';
-
     }
 
     function toggleVisibility() {
+        if (hideButtonDragged) {
+            hideButtonDragged = false;
+            return;
+        }
+
         isHidden = !isHidden;
         localStorage.setItem('timestampHiddenState', isHidden.toString());
         applyHiddenState();
@@ -511,7 +510,7 @@
         }
     }
 
-    function applyHiddenState() {
+   function applyHiddenState() {
         if (!container || !hideButton || !topBarElement || !mainContentElement || !bottomBarElement || !resizerElement) {
             console.warn("applyHiddenState: Required elements missing.");
             return;
@@ -525,9 +524,6 @@
         if (!container.dataset.originalResize) container.dataset.originalResize = window.getComputedStyle(container).resize || 'both';
 
         if (isHidden) {
-            const rect = hideButton.getBoundingClientRect();
-            hideButtonLastViewportPos = { left: rect.left, top: rect.top };
-
             topBarElement.style.visibility = 'hidden';
             mainContentElement.style.visibility = 'hidden';
             bottomBarElement.style.visibility = 'hidden';
@@ -537,7 +533,10 @@
             container.style.boxShadow = 'none';
             container.style.resize = 'none';
             container.style.overflow = 'visible';
-            container.style.pointerEvents = 'auto';
+            container.style.pointerEvents = 'none';
+
+            const rect = hideButton.getBoundingClientRect();
+            hideButtonLastViewportPos = { left: rect.left, top: rect.top };
 
             hideButton.style.position = 'fixed';
             hideButton.style.left = `${hideButtonLastViewportPos.left}px`;
@@ -564,6 +563,8 @@
             hideButton.style.left = '';
             hideButton.style.top = '';
             hideButton.style.zIndex = '';
+            hideButton.style.visibility = 'visible';
+            hideButton.style.pointerEvents = 'auto';
             hideButton.textContent = "隠す";
             hideButton.classList.remove('ts-hidden-state');
             hideButton.classList.add('ts-visible-state');
@@ -826,9 +827,8 @@
     function showJumpSuccessMessage(timestamp) { showMessage(`ジャンプ成功: ${timestamp}`, 'jump', 2000); }
     function showCopySuccessMessage(text) { showMessage(`${text}`, 'success', 2000); }
 
-    // --- Modified addStyles ---
     function addStyles() {
-        const styleId = 'timestamp-styles-v11.20-ui'; // Version Bump
+        const styleId = 'timestamp-styles-v11.20-ui';
         if (document.getElementById(styleId)) return;
         const css = `
             :root {
@@ -865,9 +865,7 @@
             }
             .ts-record-button:hover { background: linear-gradient(to bottom, #6ebef0, #3ea0e0); box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.25); }
             .ts-record-button:active { background: linear-gradient(to top, #5dade2, var(--ts-primary-blue)); transform: scale(0.97); box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.25); }
-
             #ts-main-content { display: flex; flex-grow: 1; width: 100%; overflow: hidden; background: #fdfdfd; }
-
             #ts-editor-pane {
                 width: 45%; display: flex; flex-direction: column; padding: 10px;
                 min-width: ${MIN_PANE_WIDTH}px; overflow: hidden; position: relative; background-color: #fdfdfd;
@@ -875,8 +873,8 @@
             }
              #ts-display-pane {
                  width: calc(55% - 5px); display: flex; flex-direction: column;
-                 padding: 0 20px 0 0; /* Added right padding for scrollbar */
-                 box-sizing: border-box; /* Include padding in width */
+                 padding: 0 20px 0 0;
+                 box-sizing: border-box;
                  min-width: ${MIN_PANE_WIDTH}px; overflow: hidden; background-color: #ffffff;
                  flex-shrink: 0;
             }
@@ -887,7 +885,6 @@
             }
             #ts-pane-resizer:hover { background-color: #aaa; }
             #ts-pane-resizer.resizing { background-color: var(--ts-primary-blue); }
-
             #ts-editor-pane label {
                  font-size: var(--ts-font-size-small); font-weight: bold; color: #555;
                  margin-bottom: 6px; display: block; text-align: center; flex-shrink: 0;
@@ -900,29 +897,19 @@
             }
             #ts-bulk-editor:focus { border-color: var(--ts-primary-blue); box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3); }
             #ts-bulk-editor:read-only { background-color: #f5f5f5; cursor: not-allowed; border-color: #ddd;}
-
             .ts-display-list-container { display: flex; flex-direction: column; flex-grow: 1; background: #ffffff; border: none; box-shadow: none; overflow: hidden; }
             .ts-list-button-bar {
-                display: flex;
-                padding: 7px 12px; /* Adjusted right padding slightly */
-                gap: 10px;
-                background: #f0f0f0;
-                border-bottom: 1px solid #ddd;
-                align-items: center;
-                flex-wrap: nowrap;
-                flex-shrink: 0;
+                display: flex; padding: 7px 12px; gap: 10px; background: #f0f0f0;
+                border-bottom: 1px solid #ddd; align-items: center; flex-wrap: nowrap; flex-shrink: 0;
              }
             .ts-list-button { padding: 7px 14px; font-size: var(--ts-font-size-small); font-weight: bold; border: 1px solid; border-radius: 4px; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
             .ts-list-button:active { transform: scale(0.96); box-shadow: inset 0 1px 2px rgba(0,0,0,0.15); }
-
             .ts-copy-all-button {
                 flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 80px;
                 background: linear-gradient(to bottom, var(--ts-primary-copy-blue), var(--ts-primary-copy-blue-dark)); color: white; border-color: var(--ts-primary-copy-blue-dark);
                 text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
             }
-            .ts-copy-all-button:hover {
-                background: linear-gradient(to bottom, #85c1e9, var(--ts-primary-copy-blue)); border-color: #21618c;
-            }
+            .ts-copy-all-button:hover { background: linear-gradient(to bottom, #85c1e9, var(--ts-primary-copy-blue)); border-color: #21618c; }
             .ts-sort-button {
                 flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 80px;
                 background: linear-gradient(to bottom, #f8c471, var(--ts-primary-orange)); color: white; border-color: #e67e22;
@@ -933,20 +920,12 @@
                 background: linear-gradient(to bottom, #f1948a, var(--ts-primary-red)); color: white; border: 1px solid #d9534f;
                 text-shadow: 1px 1px 1px rgba(0,0,0,0.2); border-radius: 50%; padding: 0; font-size: 18px; font-weight: bold;
                 line-height: 30px; width: 32px; height: 32px; box-sizing: border-box;
-                margin-left: auto; flex-shrink: 0;
-                margin-right: 3px; /* Small margin for spacing */
+                margin-left: auto; flex-shrink: 0; margin-right: 3px;
             }
             .ts-delete-all-button:hover { background: linear-gradient(to bottom, #f5a79d, #e95c4d); border-color: #c9302c; }
-
             #timestamp-display-list {
-                list-style-type: none;
-                padding: 10px 12px; /* Original padding */
-                margin: 0;
-                flex-grow: 1;
-                overflow-y: auto;
-                overflow-x: hidden;
-                background-color: #ffffff;
-                box-sizing: border-box;
+                list-style-type: none; padding: 10px 12px; margin: 0; flex-grow: 1;
+                overflow-y: auto; overflow-x: hidden; background-color: #ffffff; box-sizing: border-box;
              }
             .ts-empty-guide { text-align: center; padding: 30px 15px; color: #999; font-size: var(--ts-font-size-base); line-height: 1.5; }
             .ts-list-item { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #eee; display: flex; align-items: center; }
@@ -962,25 +941,21 @@
             .ts-delete-button:hover { background-color: #fadbd8; border-color: #f1948a; }
             .ts-display-container { flex-grow: 1; min-width: 120px; margin-left: 5px; cursor: default; border: none; background: none; overflow: hidden; }
             .ts-display-text { cursor: default; padding: 6px 2px; font-size: var(--ts-font-size-base); white-space: normal; overflow-wrap: break-word; word-break: break-all; max-width: 100%; line-height: 1.6; color: var(--ts-text-dark); }
-
             .ts-bottom-bar { display: flex; align-items: center; justify-content: flex-end; padding: 7px 12px; gap: 12px; background: #e0e0e0; border-top: 1px solid #ccc; flex-shrink: 0; cursor: move; }
             .ts-bottom-bar.ts-locked { cursor: default; }
             .ts-bottom-controls { display: flex; gap: 12px; cursor: default; }
             .ts-bottom-button { padding: 8px 18px; font-size: var(--ts-font-size-base); font-weight: bold; border: none; cursor: pointer; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: all 0.15s ease; text-align: center; text-shadow: 1px 1px 1px rgba(0,0,0,0.15); color: white; flex-shrink: 0; white-space: nowrap; }
             .ts-bottom-button:active { transform: scale(0.97); box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.2); }
-
             .ts-lock-button {}
             .ts-lock-button.ts-unlocked { background: linear-gradient(to bottom, var(--ts-lock-red), var(--ts-lock-red-dark)); }
             .ts-lock-button.ts-unlocked:hover { background: linear-gradient(to bottom, #f1948a, var(--ts-lock-red)); }
             .ts-lock-button.ts-locked { background: linear-gradient(to bottom, #58d68d, var(--ts-primary-green)); }
             .ts-lock-button.ts-locked:hover { background: linear-gradient(to bottom, #6fe09f, #36d97b); }
-
             .ts-hide-button { visibility: visible !important; pointer-events: auto !important; cursor: pointer; }
             .ts-hide-button.ts-visible-state { background: linear-gradient(to bottom, #aeb6bf, var(--ts-primary-grey)); }
             .ts-hide-button.ts-visible-state:hover { background: linear-gradient(to bottom, #cacfd6, #aab5c0); }
              .ts-hide-button.ts-hidden-state { background: linear-gradient(to bottom, #ec7063, var(--ts-primary-red)); }
             .ts-hide-button.ts-hidden-state:hover { background: linear-gradient(to bottom, #f1948a, #e74c3c); }
-
             .ts-context-menu { position: fixed; background-color: #ffffff; border: 1px solid #b0b0b0; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); z-index: 10001; padding: 6px 0; min-width: 160px; font-size: var(--ts-font-size-base); }
             .ts-context-menu-item { padding: 9px 20px; cursor: pointer; white-space: nowrap; color: #333; transition: background-color 0.1s ease; }
             .ts-context-menu-item:hover { background-color: #e8f0fe; color: var(--ts-primary-blue); }
@@ -999,8 +974,6 @@
         styleSheet.textContent = css;
         (document.head || document.body).appendChild(styleSheet);
     }
-    // --- End Modified addStyles ---
-
 
     function handleContainerResize(entries) {
         if (isResizingPanes) return;
@@ -1010,7 +983,6 @@
             for (let entry of entries) {
                 if (entry.target === container && editorPane && displayPane && resizerElement) {
                     const newContainerWidth = entry.contentRect.width;
-                    // Use clientWidth for mainContentElement to get width excluding its own borders/padding if any
                     const mainContentWidth = mainContentElement ? mainContentElement.clientWidth : newContainerWidth;
                     const resizerWidth = resizerElement.offsetWidth;
                     const newAvailableWidth = mainContentWidth - resizerWidth;
@@ -1029,7 +1001,6 @@
                      let newDisplayWidth = Math.max(MIN_PANE_WIDTH, newAvailableWidth - newEditorWidth);
                      newEditorWidth = newAvailableWidth - newDisplayWidth;
 
-
                      if (newAvailableWidth > (MIN_PANE_WIDTH * 2)) {
                         editorPane.style.width = `${newEditorWidth}px`;
                         displayPane.style.width = `${newDisplayWidth}px`;
@@ -1041,7 +1012,6 @@
              saveContainerPosition();
         }, RESIZE_DEBOUNCE_MS);
     }
-
 
     function initializeUI() {
         const containerId = 'ts-container-main';
@@ -1055,9 +1025,8 @@
         }
 
         try {
-            addStyles(); // CSS is added first
+            addStyles();
 
-            // Create all elements... (same as before)
             container = document.createElement("div"); container.className = "ts-container"; container.id = containerId;
             topBarElement = document.createElement("div"); topBarElement.className = "ts-top-bar";
             currentTimeDisplay = document.createElement("div"); currentTimeDisplay.id = "ts-current-time"; currentTimeDisplay.className = "ts-time-display"; currentTimeDisplay.textContent = "読み込み中...";
@@ -1070,12 +1039,12 @@
 
             resizerElement = document.createElement("div"); resizerElement.id = "ts-pane-resizer";
 
-            displayPane = document.createElement("div"); displayPane.id = "ts-display-pane"; // Padding added via CSS
+            displayPane = document.createElement("div"); displayPane.id = "ts-display-pane";
             displayListContainer = document.createElement("div"); displayListContainer.className = "ts-display-list-container";
-            const listButtonBar = document.createElement("div"); listButtonBar.className = "ts-list-button-bar"; // Padding added via CSS
+            const listButtonBar = document.createElement("div"); listButtonBar.className = "ts-list-button-bar";
             const copyAllButton = document.createElement("button"); copyAllButton.textContent = "全コピー"; copyAllButton.title = "左パネルの内容をコピー"; copyAllButton.className = "ts-list-button ts-copy-all-button";
             const sortButton = document.createElement("button"); sortButton.id = "ts-sort-button"; sortButton.title = "右パネルの表示順を切替"; sortButton.className = "ts-list-button ts-sort-button";
-            const deleteAllButton = document.createElement("button"); deleteAllButton.textContent = "✕"; deleteAllButton.title = "すべて削除"; deleteAllButton.className = "ts-list-button ts-delete-all-button"; // Margin added via CSS
+            const deleteAllButton = document.createElement("button"); deleteAllButton.textContent = "✕"; deleteAllButton.title = "すべて削除"; deleteAllButton.className = "ts-list-button ts-delete-all-button";
             displayListElement = document.createElement("ul"); displayListElement.id = "timestamp-display-list";
 
             bottomBarElement = document.createElement("div"); bottomBarElement.className = "ts-bottom-bar";
@@ -1083,7 +1052,6 @@
             lockButton = document.createElement("button"); lockButton.id = "ts-lock-button"; lockButton.className = "ts-bottom-button ts-lock-button";
             hideButton = document.createElement("button"); hideButton.id = "ts-hide-button"; hideButton.className = "ts-bottom-button ts-hide-button";
 
-            // Assemble elements... (same as before)
             topBarElement.append(currentTimeDisplay, recordBtn);
             editorPane.append(editorLabel, bulkEditor);
             listButtonBar.append(copyAllButton, sortButton, deleteAllButton);
@@ -1095,14 +1063,12 @@
             container.append(topBarElement, mainContentElement, bottomBarElement);
             document.body.appendChild(container);
 
-            // Apply position and size... (same as before)
             const savedPosition = loadContainerPosition();
             container.style.left = savedPosition.left;
             container.style.top = savedPosition.top;
             container.style.width = savedPosition.width;
             container.style.height = savedPosition.height;
 
-            // Store original styles and apply saved pane widths... (same as before)
             requestAnimationFrame(() => {
                  if (!container) return;
                 container.dataset.originalBg = window.getComputedStyle(container).backgroundColor;
@@ -1116,9 +1082,8 @@
                 applySavedPaneWidths();
             });
 
-            updateSortButtonText(); // Set button text
+            updateSortButtonText();
 
-            // Attach event listeners... (same as before)
             recordBtn.onclick = recordTimestamp;
             copyAllButton.onclick = copyAllTimestamps;
             sortButton.onclick = toggleSortOrder;
@@ -1131,11 +1096,10 @@
 
             bulkEditor.addEventListener('input', handleEditorChange);
              bulkEditor.addEventListener('keydown', function(event) {
-                if (event.key === 'Enter') { /* Allow default */ }
+                if (event.key === 'Enter') { }
             });
 
              const addDragListener = (element) => {
-                // ... (Container drag logic - unchanged) ...
                 let dragStartX, dragStartY, initialLeft, initialTop;
                 const handleDragMove = (moveEvent) => {
                      if (!isDraggingContainer || isResizingPanes) return;
@@ -1182,7 +1146,6 @@
             addDragListener(bottomBarElement);
 
              const paneResizeMoveHandler = (e) => {
-                 // ... (Internal pane resize move logic - unchanged) ...
                  if (!isResizingPanes || !editorPane || !displayPane) return;
 
                  const dx = e.clientX - resizeStartX;
@@ -1202,7 +1165,6 @@
              };
 
              const paneResizeUpHandler = () => {
-                 // ... (Internal pane resize mouseup logic - unchanged) ...
                  if (!isResizingPanes) return;
                  isResizingPanes = false;
                  document.removeEventListener('mousemove', paneResizeMoveHandler);
@@ -1214,7 +1176,6 @@
              };
 
              resizerElement.addEventListener('mousedown', (e) => {
-                 // ... (Internal pane resize mousedown logic - unchanged) ...
                  if (isLocked || e.button !== 0 || !editorPane || !displayPane) return;
                  isResizingPanes = true;
                  resizeStartX = e.clientX;
@@ -1230,14 +1191,13 @@
                  e.preventDefault();
              });
 
-
             hideButton.addEventListener('mousedown', (e) => {
-                 // ... (Hide button drag logic - unchanged from 11.18) ...
                  if (e.button !== 0) return;
                  e.stopPropagation();
                  dragStartTime = Date.now();
                  isDraggingFromHideButton = false;
-                 let movedDuringDrag = false;
+                 hideButtonDragged = false;
+
                  const startX = e.clientX; const startY = e.clientY;
                  const buttonRect = hideButton.getBoundingClientRect();
                  const initialButtonLeft = buttonRect.left; const initialButtonTop = buttonRect.top;
@@ -1248,9 +1208,8 @@
                      const dx = Math.abs(moveEvent.clientX - startX);
                      const dy = Math.abs(moveEvent.clientY - startY);
 
-                     if (!isDraggingFromHideButton && (dx > 5 || dy > 5 || Date.now() - dragStartTime > DRAG_THRESHOLD)) {
+                     if (!isDraggingFromHideButton && (dx > DRAG_MOVE_THRESHOLD || dy > DRAG_MOVE_THRESHOLD || Date.now() - dragStartTime > DRAG_THRESHOLD)) {
                           isDraggingFromHideButton = true;
-                          movedDuringDrag = true;
                           document.body.style.cursor = 'move';
                           document.body.style.userSelect = 'none';
                           if (isHidden) {
@@ -1298,11 +1257,15 @@
                      isDraggingFromHideButton = false;
 
                      if (wasDragging) {
+                         hideButtonDragged = true;
+
                          if (isHidden){
                              const finalRect = hideButton.getBoundingClientRect();
                              hideButtonLastViewportPos = { left: finalRect.left, top: finalRect.top };
                          }
                          saveContainerPosition();
+                         upEvent.preventDefault();
+                         upEvent.stopPropagation();
                      }
                  };
 
@@ -1317,8 +1280,7 @@
                  console.warn("ResizeObserver is not supported in this browser. External resize won't adjust internal panes proportionally.");
              }
 
-
-            loadState(); // Load data & apply pane widths
+            loadState();
             applyLockState();
             applyHiddenState();
             startCurrentTimeUpdate();
@@ -1336,7 +1298,6 @@
         }
     }
 
-    // ... (Rest of the script: runInitialization, observerCallback, initialStart, unload handler - unchanged from 11.18) ...
     let initRetryCount = 0; const MAX_INIT_RETRIES = 10;
     function runInitialization() {
         if (document.getElementById('ts-container-main')) {
@@ -1393,7 +1354,7 @@
             }
             container = recordBtn = lockButton = hideButton = editorPane = displayPane = bulkEditor = displayListContainer = displayListElement = currentTimeDisplay = topBarElement = bottomBarElement = mainContentElement = resizerElement = null;
             timestamps = [];
-            isDraggingContainer = false; isDraggingFromHideButton = false; isResizingPanes = false;
+            isDraggingContainer = false; isDraggingFromHideButton = false; hideButtonDragged = false; isResizingPanes = false;
             initRetryCount = 0;
             sortState = null;
 
