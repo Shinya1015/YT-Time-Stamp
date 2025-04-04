@@ -2,7 +2,7 @@
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
 // @version      11.20-mod-final-no-comments
-// @description  タイムスタンプ記録 (右端表示要素修正 + ドラッグ解放時の誤クリック防止 + 隠し時のクリック透過)
+// @description  タイムスタンプ記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
 // @run-at       document-idle
