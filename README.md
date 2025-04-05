@@ -8,7 +8,7 @@ Tampermonkeyインストールページにアクセスします：
 📜 ステップ 2: タイムスタンプ記録スクリプトのインストール
 Tampermonkeyがインストールされていることを確認します。
 以下のリンクをクリックしてスクリプトの RAW バージョンを表示します：
-👉 [タイムスタンプ記録.user.js]
+👉[タイムスタンプ記録.user.js (RAW)](https://github.com/Shinya1015/YT-Time-Stamp/blob/main/%E3%82%BF%E3%82%A4%E3%83%A0%E3%82%B9%E3%82%BF%E3%83%B3%E3%83%97%E8%A8%98%E9%8C%B2.user.js)
 
 RAWページが開かれたら、ページ上部にある「Raw」ボタンを左クリックしてスクリプトを開きます。
 Tampermonkeyが自動的にインストール確認ダイアログを表示します。
