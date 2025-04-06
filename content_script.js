@@ -297,7 +297,7 @@
             .ts-list-button-bar { display: flex; padding: 7px 0; gap: 10px; background: #f0f0f0; border-bottom: 1px solid #ddd; align-items: center; flex-wrap: nowrap; flex-shrink: 0; }
             .ts-list-button { padding: 7px 14px; font-size: var(--ts-font-size-small); font-weight: bold; border: 1px solid; border-radius: 4px; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
             .ts-list-button:active { transform: scale(0.96); box-shadow: inset 0 1px 2px rgba(0,0,0,0.15); }
-            .ts-copy-all-button { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 80px; background: linear-gradient(to bottom, var(--ts-primary-copy-blue), var(--ts-primary-copy-blue-dark)); color: white; border-color: var(--ts-primary-copy-blue-dark); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
+            .ts-copy-all-button { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 80px; background: linear-gradient(to bottom, #98FB98, #66CDAA); color: #1A4D2E; border-color: #66CDAA; text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.3); }
             .ts-copy-all-button:hover { background: linear-gradient(to bottom, #85c1e9, var(--ts-primary-copy-blue)); border-color: #21618c; }
             .ts-sort-button { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 80px; background: linear-gradient(to bottom, #f8c471, var(--ts-primary-orange)); color: white; border-color: #e67e22; text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
             .ts-sort-button:hover { background: linear-gradient(to bottom, #f9d08a, #f5a623); border-color: #d35400; }
@@ -349,6 +349,7 @@
             .ts-message-box.error   { background-color: var(--ts-primary-red); }
             .ts-message-box.info    { background-color: var(--ts-primary-blue); }
             .ts-message-box.jump    { background-color: #733dd8; }
+            /* .ts-tooltip-hint CSS is kept in case needed later, but the element won't be created */
             .ts-tooltip-hint { position: fixed; bottom: 25px; right: 25px; background-color: rgba(0,0,0,0.85); color: white; padding: 10px 15px; border-radius: 4px; font-size: var(--ts-font-size-small); z-index: 9999; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; }
             .ts-tooltip-hint.visible { opacity: 1; }
             #${TOGGLE_BUTTON_ID}.timestamp-ext-star-button-left { color: white; font-size: 26px; padding: 0 6px; margin-left: 8px; opacity: 0.9; height: 100%; display: inline-flex !important; align-items: center; vertical-align: top; transition: opacity 0.1s linear, transform 0.1s ease-out; order: 5; cursor: pointer; background: none; border: none; }
@@ -443,7 +444,8 @@
             addDragListener(topBarElement); addDragListener(bottomBarElement);
             if (resizerElement && editorPane && displayPane && mainContentElement) { const handleMouseMove = (moveEvent) => { if (!isResizingPanes) return; try { const parentRect = mainContentElement.getBoundingClientRect(); const resizerW = resizerElement.offsetWidth; const totalWidth = parentRect.width; const availableW = totalWidth - resizerW; if (availableW <= MIN_PANE_WIDTH * 2) return; let newEditorWidth = moveEvent.clientX - parentRect.left; newEditorWidth = Math.max(MIN_PANE_WIDTH, newEditorWidth); newEditorWidth = Math.min(newEditorWidth, availableW - MIN_PANE_WIDTH); let newDisplayWidth = availableW - newEditorWidth; editorPane.style.width = `${newEditorWidth}px`; displayPane.style.width = `${newDisplayWidth}px`; editorPane.style.flexBasis = ''; displayPane.style.flexBasis = ''; } catch (error) { } }; const handleMouseUp = () => { if (!isResizingPanes) return; isResizingPanes = false; document.removeEventListener('mousemove', handleMouseMove); document.removeEventListener('mouseup', handleMouseUp); document.body.style.cursor = ''; document.body.style.userSelect = ''; if (resizerElement) { resizerElement.classList.remove('resizing'); } saveContainerPosition(); }; const handleMouseDown = (downEvent) => { if (isLocked || downEvent.button !== 0) return; isResizingPanes = true; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; if (resizerElement) { resizerElement.classList.add('resizing'); } document.addEventListener('mousemove', handleMouseMove); document.addEventListener('mouseup', handleMouseUp); downEvent.preventDefault(); }; resizerElement.addEventListener('mousedown', handleMouseDown); }
             if ('ResizeObserver' in window && container) { try { containerResizeObserver = new ResizeObserver(handleContainerResize); containerResizeObserver.observe(container); } catch (e) { containerResizeObserver = null; } }
-            loadState(); applyLockState(); startCurrentTimeUpdate(); showTooltipHint();
+            loadState(); applyLockState(); startCurrentTimeUpdate();
+            // showTooltipHint(); // <--- This line is removed/commented out
         } catch (uiError) { showErrorMessage("スクリプトUIの読み込みに失敗しました！"); if (container?.parentNode) { try { container.remove(); } catch(e) {} } container = null; if (containerResizeObserver) { try { containerResizeObserver.disconnect(); } catch(e) {} containerResizeObserver = null; } }
     }
 
@@ -476,6 +478,7 @@
     try { const observeTargetNode = document.querySelector('ytd-page-manager') || document.body; if (observeTargetNode) { pageObserver = new MutationObserver(observerCallback); pageObserver.observe(observeTargetNode, { childList: true, subtree: true }); } else { } }
     catch (e) { }
 
+    // This function definition remains, but it's no longer called by initializeUI
     function showTooltipHint() { if (firstTimeUser && !document.getElementById("ts-tooltip-hint")) { try { const hint = document.createElement("div"); hint.id = "ts-tooltip-hint"; hint.className = "ts-tooltip-hint"; hint.textContent = "ヒント: 左パネルで編集、右パネルでCtrl+クリックジャンプ / 右クリックメニュー"; document.body.appendChild(hint); setTimeout(() => { hint.classList.add("visible"); }, 100); setTimeout(() => { if (!hint.parentNode) return; hint.classList.remove("visible"); hint.addEventListener("transitionend", () => { try { hint.remove(); } catch(e) {} }, { once: true }); setTimeout(() => { hint.parentNode && (() => { try { hint.remove(); } catch(e) {} })(); }, 600); }, 8000); } catch(t) { } } }
 
     function initialStart() {
