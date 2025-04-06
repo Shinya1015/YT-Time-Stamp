@@ -1,30 +1,22 @@
-// ========================================================================
-// タイムスタンプ記録 Extension (Strategy 5 + Left ★ Toggle) - v5.2 (Silent Resize Fallback)
-// ========================================================================
 (function() {
     'use strict';
-    // --- 更新日誌標籤和版本 ---
-    const LOG_TAG = "[Timestamp Ext V5.2 - Left Star]"; // 更新版本標識
-    const SCRIPT_VERSION = "11.21.5.2"; // Example version update
+    const LOG_TAG = "[Timestamp Ext V5.2 - Left Star]";
+    const SCRIPT_VERSION = "11.21.5.2";
     console.log(LOG_TAG, `コンテンツスクリプト 実行開始！ Version ${SCRIPT_VERSION}`);
 
-    // --- 全域變數 ---
-    let isExtensionEnabled = true; // Will be updated from storage
+    let isExtensionEnabled = true;
     let timestamps = [];
     let isDraggingContainer = false;
     let offsetX = 0, offsetY = 0;
-    // --- hideButton is confirmed removed ---
     let container, recordBtn, lockButton;
     let editorPane, displayPane, bulkEditor, displayListContainer, displayListElement, currentTimeDisplay;
     let topBarElement, bottomBarElement, mainContentElement, resizerElement;
     let isLocked = false;
     let sortState = null;
-    // --- isHidden related variables are removed ---
     let firstTimeUser = localStorage.getItem('timestampFirstTime') === null;
     let currentTimeInterval = null;
     let pageObserver = null;
-    let dragStartTime = 0; // For container drag, not hide button
-    // --- hideButton drag related variables are removed ---
+    let dragStartTime = 0;
     let editorChangeTimeout = null;
     let isDraggingModal = false;
     let modalOffsetX = 0, modalOffsetY = 0;
@@ -37,13 +29,11 @@
     let messageTimeoutId = null;
     let initRetryCount = 0;
 
-    // --- ★ Button related variables ---
-    let timestampToggleButton = null; // The ★ button element
-    let isToggleButtonInjected = false; // Track if ★ button is added
-    let playerControlsCheckInterval = null; // Timer for finding player controls
-    const TOGGLE_BUTTON_ID = 'timestamp-ext-toggle-button-star-left'; // Unique ID for the star button
+    let timestampToggleButton = null;
+    let isToggleButtonInjected = false;
+    let playerControlsCheckInterval = null;
+    const TOGGLE_BUTTON_ID = 'timestamp-ext-toggle-button-star-left';
 
-    // --- 常數定義 ---
     const STORAGE_KEY_ENABLED = 'extensionEnabled';
     const CONTAINER_ID = 'ts-container-main';
     const EDITOR_DEBOUNCE_MS = 400;
@@ -56,7 +46,6 @@
     const PLAYER_CONTROLS_CHECK_INTERVAL_MS = 500;
     const PLAYER_CONTROLS_CHECK_TIMEOUT_MS = 25000;
 
-    // --- 清理函數 ---
     function cleanupExtensionUI() {
         console.log(LOG_TAG, "執行清理...");
         if (typeof stopCurrentTimeUpdate === 'function') stopCurrentTimeUpdate();
@@ -69,7 +58,6 @@
         if (rafDragId) cancelAnimationFrame(rafDragId); rafDragId = null;
         if (rafModalDragId) cancelAnimationFrame(rafModalDragId); rafModalDragId = null;
 
-        // Clean up ★ button and related timer
         removeTimestampToggleButton();
         if (playerControlsCheckInterval) {
             clearInterval(playerControlsCheckInterval);
@@ -79,16 +67,12 @@
         const uiContainer = document.getElementById(CONTAINER_ID);
         if (uiContainer) { try { uiContainer.remove(); } catch(e) { console.warn(LOG_TAG, "清理 UI 容器時出錯:", e); } }
 
-        // Nullify variables
         container = recordBtn = lockButton = editorPane = displayPane = bulkEditor = displayListContainer = displayListElement = currentTimeDisplay = topBarElement = bottomBarElement = mainContentElement = resizerElement = null;
         isDraggingContainer = false; isResizingPanes = false;
         initRetryCount = 0;
         console.log(LOG_TAG, "清理完成。");
     }
 
-    // --- 函數定義 ---
-
-    // --- Message Display Functions ---
     function showMessage(message, type = 'info', duration = 3000) {
         try {
             const existingBox = document.getElementById('ts-message-box-instance');
@@ -124,7 +108,6 @@
     function showJumpSuccessMessage(timestamp) { showMessage(`ジャンプ成功: ${timestamp}`, 'jump', 2000); }
     function showCopySuccessMessage(text) { showMessage(`${text}`, 'success', 2000); }
 
-    // --- Pane Width, State Load/Save, etc. ---
     function applySavedPaneWidths() {
         try {
             const savedEditorWidthPx = localStorage.getItem('timestampEditorWidth');
@@ -136,7 +119,6 @@
                     const availableWidth = totalWidth - resizerW;
 
                     if (availableWidth <= (MIN_PANE_WIDTH * 2)) {
-                         // console.warn(LOG_TAG, "applySavedPaneWidths: Container too small, using default flex basis."); // Keep commented/removed
                          editorPane.style.width = ''; displayPane.style.width = '';
                          editorPane.style.flexBasis = '45%'; displayPane.style.flexBasis = '55%';
                          return;
@@ -149,7 +131,7 @@
                         editorPane.style.flexBasis = '';
                         displayPane.style.flexBasis = '';
                     } else {
-                        console.warn(LOG_TAG, "保存されたエディター幅が無効または範囲外です。デフォルトの比率を使用します。"); // This warn is ok, indicates bad data
+                        console.warn(LOG_TAG, "保存されたエディター幅が無効または範囲外です。デフォルトの比率を使用します。");
                         editorPane.style.width = ''; displayPane.style.width = '';
                         editorPane.style.flexBasis = '45%'; displayPane.style.flexBasis = '55%';
                     }
@@ -166,7 +148,7 @@
              }
         }
     }
-    function loadState() { // isHidden logic confirmed removed
+    function loadState() {
         try {
             const storedTimestamps = localStorage.getItem('timestamps');
             if (storedTimestamps) {
@@ -211,7 +193,7 @@
             }
         } catch (e) { console.error(LOG_TAG, "Failed to save container position/size:", e); }
     }
-    function loadContainerPosition() { // Corrected version
+    function loadContainerPosition() {
         const defaultPos = { left: "360px", top: "500px", width: "680px", height: "380px" };
         const savedPosition = localStorage.getItem('timestampContainerPosition');
         if (savedPosition) {
@@ -228,7 +210,6 @@
         return defaultPos;
     }
 
-    // --- Time Formatting, Display, Record, Adjust, Delete, Jump ---
     function formatTime(totalSeconds) { totalSeconds = Math.max(0, Math.floor(totalSeconds)); const h = Math.floor(totalSeconds / 3600); const m = Math.floor((totalSeconds % 3600) / 60); const s = totalSeconds % 60; return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`; }
     function updateTimeDisplay() { try { const video = document.querySelector('video'); if (currentTimeDisplay) { if (video && typeof video.currentTime === 'number' && !isNaN(video.currentTime)) { currentTimeDisplay.textContent = `再生時間 ${formatTime(video.currentTime)}`; } else { currentTimeDisplay.textContent = '再生時間 --:--:--'; } } } catch (e) { console.error(LOG_TAG, "Error updating time display:", e); if (currentTimeDisplay) currentTimeDisplay.textContent = '時刻表示エラー'; } }
     function startCurrentTimeUpdate() { stopCurrentTimeUpdate(); try { const video = document.querySelector('video'); if (video && video.readyState >= 1) { updateTimeDisplay(); currentTimeInterval = setInterval(updateTimeDisplay, 1000); } else if (video) { const onMetadataLoaded = () => { if (video.readyState >= 1) { updateTimeDisplay(); currentTimeInterval = setInterval(updateTimeDisplay, 1000); } video.removeEventListener('loadedmetadata', onMetadataLoaded); }; video.addEventListener('loadedmetadata', onMetadataLoaded); } } catch (e) { console.error(LOG_TAG, "Error starting current time update:", e); } }
@@ -239,77 +220,59 @@
     function jumpToTimestamp(timestamp) { const timestampStr = String(timestamp); const match = timestampStr.match(TIME_REGEX); if (match) { try { const h = parseInt(match[1], 10), m = parseInt(match[2], 10), s = parseInt(match[3], 10); if (isNaN(h) || isNaN(m) || isNaN(s)) throw new Error("時間解析エラー"); const totalSeconds = h * 3600 + m * 60 + s; const video = document.querySelector('video'); if (video) { if (!isNaN(video.duration) && totalSeconds > video.duration) { video.currentTime = video.duration; } else { video.currentTime = totalSeconds; } if (typeof video.play === 'function') { video.play().catch(e => console.warn(LOG_TAG, "再生失敗 (play promise rejected):", e.message)); } showJumpSuccessMessage(match[0]); } else { showErrorMessage("動画プレーヤーが見つかりません。"); } } catch (e) { console.error(LOG_TAG, "Error jumping to timestamp:", e); showErrorMessage("ジャンプエラー。"); } } else { showErrorMessage(`ジャンプエラー：時間形式 (HH:MM:SS) が見つかりません。(${timestampStr.substring(0, 10)}...)`); } }
     function parseTimeToSeconds(timeString) { const match = String(timeString).match(TIME_REGEX); if (match?.[1] && match?.[2] && match?.[3]) { try { const h = parseInt(match[1], 10), m = parseInt(match[2], 10), s = parseInt(match[3], 10); if (!isNaN(h) && !isNaN(m) && !isNaN(s)) { return h * 3600 + m * 60 + s; } } catch(e) {} } return null; }
 
-    // --- Sorting Logic ---
     function toggleSortOrder() { if (sortState === null) { sortState = true; } else if (sortState === true) { sortState = false; } else { sortState = null; } if(typeof renderTimestampList === 'function') renderTimestampList(); if(typeof updateSortButtonText === 'function') updateSortButtonText(); }
     function updateSortButtonText() { try { const btn = document.getElementById('ts-sort-button'); if (!btn) return; if (sortState === true) { btn.textContent = "時間昇順 ▲"; } else if (sortState === false) { btn.textContent = "時間降順 ▼"; } else { btn.textContent = "元の順序"; } btn.style.transform = "scale(0.95)"; setTimeout(() => { if(btn) btn.style.transform = "scale(1)"; }, 100); } catch(e) { console.error(LOG_TAG, "Error updating sort button text:", e); } }
 
-    // --- Delete All Logic ---
     function deleteAllTimestampsConfirmed() { try { timestamps = []; saveTimestamps(); if (bulkEditor) bulkEditor.value = ''; sortState = null; if(typeof updateSortButtonText === 'function') updateSortButtonText(); if(typeof renderTimestampList === 'function') renderTimestampList(); showInfoMessage("すべての記録が削除されました。"); } catch (error) { console.error(LOG_TAG, "Error in deleteAllTimestampsConfirmed:", error); showErrorMessage("全削除処理中にエラーが発生しました。"); } }
 
-    // --- Context Menu Logic ---
     let contextMenuCloseListener = null;
     function closeExistingContextMenu() { try { const menu = document.getElementById('timestamp-context-menu'); if (menu) menu.remove(); if (contextMenuCloseListener) { document.removeEventListener('click', contextMenuCloseListener, { capture: true }); document.removeEventListener('contextmenu', contextMenuCloseListener, { capture: true }); contextMenuCloseListener = null; } } catch (e) { console.warn(LOG_TAG, "Error closing context menu:", e); } }
     function showTimestampContextMenu(e, timestamp, element) { closeExistingContextMenu(); try { const menu = document.createElement('div'); menu.id = 'timestamp-context-menu'; menu.className = 'ts-context-menu'; const menuWidth = 160; const menuHeight = 80; const posX = (e.clientX + menuWidth > window.innerWidth) ? window.innerWidth - menuWidth - 5 : e.clientX + 2; const posY = (e.clientY + menuHeight > window.innerHeight) ? e.clientY - menuHeight - 2 : e.clientY + 2; menu.style.left = `${posX}px`; menu.style.top = `${posY}px`; const itemStyle = 'ts-context-menu-item'; const currentTimestamp = element?.textContent || timestamp; if (TIME_REGEX.test(String(currentTimestamp))) { const jumpOption = document.createElement('div'); jumpOption.textContent = 'タイムラインジャンプ'; jumpOption.className = itemStyle; jumpOption.onclick = () => { jumpToTimestamp(currentTimestamp); closeExistingContextMenu(); }; menu.appendChild(jumpOption); } const copyOption = document.createElement('div'); copyOption.textContent = 'コピー'; copyOption.className = itemStyle; copyOption.onclick = () => { copySingleTimestamp(currentTimestamp); closeExistingContextMenu(); }; menu.appendChild(copyOption); document.body.appendChild(menu); contextMenuCloseListener = (event) => { const menuElement = document.getElementById('timestamp-context-menu'); if (menuElement && !menuElement.contains(event.target)) { closeExistingContextMenu(); } }; setTimeout(() => { document.addEventListener('click', contextMenuCloseListener, { capture: true, once: true }); document.addEventListener('contextmenu', contextMenuCloseListener, { capture: true, once: true }); }, 0); } catch (err) { console.error(LOG_TAG, "Error showing context menu:", err); } }
 
-    // --- Confirmation Modal ---
     function showConfirmDeleteAllModal() { let modalOverlay = null; try { closeExistingContextMenu(); const existingModal = document.getElementById('ts-confirm-modal'); if (existingModal) existingModal.remove(); modalOverlay = document.createElement("div"); modalOverlay.id = "ts-confirm-modal"; modalOverlay.className = "ts-modal-overlay"; const modalContent = document.createElement("div"); modalContent.className = "ts-modal-content"; const message = document.createElement("p"); message.textContent = "すべての記録を削除しますか？"; message.className = "ts-modal-message"; const buttonContainer = document.createElement("div"); buttonContainer.className = "ts-modal-buttons"; const cancelButton = document.createElement("button"); cancelButton.textContent = "いいえ"; cancelButton.className = "ts-modal-button ts-modal-cancel"; cancelButton.onclick = () => { try { modalOverlay.remove(); } catch(e) {} }; const confirmButton = document.createElement("button"); confirmButton.textContent = "削除"; confirmButton.className = "ts-modal-button ts-modal-confirm"; confirmButton.onclick = () => { try { deleteAllTimestampsConfirmed(); modalOverlay.remove(); } catch (e) { console.error(LOG_TAG, "Error during deleteAll/modal removal:", e); showErrorMessage("削除処理中にエラーが発生しました。"); if (modalOverlay?.parentNode) { try { modalOverlay.remove(); } catch(e) {} } } }; buttonContainer.append(cancelButton, confirmButton); modalContent.append(message, buttonContainer); modalOverlay.appendChild(modalContent); document.body.appendChild(modalOverlay); modalContent.style.position = 'absolute'; modalContent.style.cursor = 'move'; modalContent.addEventListener('mousedown', (e) => { if (e.target !== modalContent || e.button !== 0) return; isDraggingModal = true; const overlayRect = modalOverlay.getBoundingClientRect(); const contentRect = modalContent.getBoundingClientRect(); modalOffsetX = e.clientX - contentRect.left; modalOffsetY = e.clientY - contentRect.top; const initialLeft = contentRect.left - overlayRect.left; const initialTop = contentRect.top - overlayRect.top; document.body.style.userSelect = 'none'; const modalMoveHandler = (moveEvent) => { if (!isDraggingModal) return; if(rafModalDragId) cancelAnimationFrame(rafModalDragId); rafModalDragId = requestAnimationFrame(() => { let newX = initialLeft + (moveEvent.clientX - e.clientX); let newY = initialTop + (moveEvent.clientY - e.clientY); modalContent.style.left = `${newX}px`; modalContent.style.top = `${newY}px`; rafModalDragId = null; }); }; const modalUpHandler = () => { if(rafModalDragId) cancelAnimationFrame(rafModalDragId); rafModalDragId = null; if (isDraggingModal) { isDraggingModal = false; document.body.style.userSelect = ''; document.removeEventListener('mousemove', modalMoveHandler); document.removeEventListener('mouseup', modalUpHandler); } }; document.addEventListener('mousemove', modalMoveHandler); document.addEventListener('mouseup', modalUpHandler, { once: true }); e.preventDefault(); }); cancelButton.focus(); } catch (error) { console.error(LOG_TAG, "Error showing delete confirmation modal:", error); showErrorMessage("削除確認ウィンドウ表示中にエラー発生"); if (modalOverlay?.parentNode) { try { modalOverlay.remove(); } catch(e) {} } } }
 
-    // --- Copy Logic ---
     function copyAllTimestamps() { if (!bulkEditor || bulkEditor.value.trim() === '') { showInfoMessage("コピーする記録はありません。"); return; } const textToCopy = bulkEditor.value; navigator.clipboard.writeText(textToCopy).then(() => { const lineCount = textToCopy.split('\n').filter(line => line.trim() !== '').length; showCopySuccessMessage(`エディター内容 全${lineCount}行コピー！`); }).catch(err => { console.error(LOG_TAG, 'コピー失敗:', err); showErrorMessage("コピーに失敗しました。"); }); }
     function copySingleTimestamp(text) { if (!text) return; navigator.clipboard.writeText(String(text)).then(() => { showCopySuccessMessage(`コピー: ${String(text).substring(0, 50)}${String(text).length > 50 ? '...' : ''}`); }).catch(err => { console.error(LOG_TAG, 'コピー失敗:', err); showErrorMessage("コピー失敗。"); }); }
 
-    // --- Lock/Unlock Logic ---
     function toggleLock() { isLocked = !isLocked; localStorage.setItem('timestampLockState', isLocked.toString()); applyLockState(); if (lockButton) { lockButton.style.transform = "scale(0.95)"; setTimeout(() => { if (lockButton) lockButton.style.transform = "scale(1)"; }, 100); } }
     function applyLockState() { if (!lockButton || !container || !bulkEditor || !topBarElement || !bottomBarElement || !resizerElement) { console.warn(LOG_TAG, "applyLockState: Elements missing."); return; } try { lockButton.textContent = isLocked ? "アンロック" : "ロック"; lockButton.classList.toggle('ts-locked', isLocked); lockButton.classList.toggle('ts-unlocked', !isLocked); bulkEditor.readOnly = isLocked; bulkEditor.style.backgroundColor = isLocked ? '#eee' : '#fff'; bulkEditor.style.cursor = isLocked ? 'not-allowed' : ''; topBarElement.style.cursor = isLocked ? 'default' : 'move'; bottomBarElement.style.cursor = isLocked ? 'default' : 'move'; topBarElement.classList.toggle('ts-locked', isLocked); bottomBarElement.classList.toggle('ts-locked', isLocked); if (!container.dataset?.originalResize) { container.dataset.originalResize = window.getComputedStyle(container).resize || 'both'; } container.style.resize = isLocked ? 'none' : (container.dataset.originalResize); container.classList.toggle('ts-locked', isLocked); resizerElement.style.display = isLocked ? 'none' : 'block'; resizerElement.style.cursor = isLocked ? 'default' : 'col-resize'; } catch(e) { console.error(LOG_TAG, "Error applying lock state:", e); } }
 
-    // --- Editor/Display Sync ---
     function populateEditorFromTimestamps() { if (!bulkEditor) return; try { bulkEditor.value = timestamps.join('\n'); } catch(e) { console.error(LOG_TAG, "Error populating editor:", e); } }
     function handleEditorChange() { if (!bulkEditor) return; if (editorChangeTimeout) clearTimeout(editorChangeTimeout); editorChangeTimeout = setTimeout(() => { try { const currentText = bulkEditor.value; const lines = currentText.split('\n'); if (JSON.stringify(timestamps) !== JSON.stringify(lines)) { timestamps = lines; saveTimestamps(); if (sortState !== null) { sortState = null; if(typeof updateSortButtonText === 'function') updateSortButtonText(); } if(typeof renderTimestampList === 'function') renderTimestampList(); } } catch (e) { console.error(LOG_TAG, "Error handling editor change:", e); } }, EDITOR_DEBOUNCE_MS); }
 
-    // --- Render Display List ---
     function renderTimestampList() { if (!displayListElement) { displayListElement = document.getElementById("timestamp-display-list"); if (!displayListElement) { console.warn(LOG_TAG, "renderTimestampList: displayListElement not found."); return; } } try { displayListElement.textContent = ''; const validTimestamps = timestamps.map(String).filter(ts => ts.trim().length > 0); let displayItems = []; if (sortState !== null) { const itemsToSort = validTimestamps.map((text, index) => ({ text: text, timeSeconds: parseTimeToSeconds(text), originalIndex: timestamps.indexOf(text) })); itemsToSort.sort((a, b) => { if (a.timeSeconds !== null && b.timeSeconds !== null) { return sortState ? a.timeSeconds - b.timeSeconds : b.timeSeconds - a.timeSeconds; } if (a.timeSeconds === null && b.timeSeconds !== null) return sortState ? 1 : -1; if (a.timeSeconds !== null && b.timeSeconds === null) return sortState ? -1 : 1; return sortState ? a.text.localeCompare(b.text) : b.text.localeCompare(a.text); }); displayItems = itemsToSort; } else { displayItems = validTimestamps.map((text) => ({ text: text, originalIndex: timestamps.indexOf(text) })); } if (displayItems.length === 0) { const emptyGuide = document.createElement('div'); emptyGuide.className = 'ts-empty-guide'; emptyGuide.textContent = "記録はありません"; displayListElement.appendChild(emptyGuide); return; } const fragment = document.createDocumentFragment(); displayItems.forEach((itemData) => { const listItem = createTimestampListItem(itemData.text, itemData.originalIndex); if (listItem) { fragment.appendChild(listItem); } }); displayListElement.appendChild(fragment); } catch (e) { console.error(LOG_TAG, "Error rendering timestamp display list:", e); showErrorMessage("リスト表示エラー。"); if (displayListElement) { displayListElement.textContent = ''; const errorLi = document.createElement('li'); errorLi.textContent = 'リスト表示エラー'; errorLi.style.cssText = 'color: red; padding: 10px; text-align: center;'; displayListElement.appendChild(errorLi); } } }
     function createTimestampListItem(timestampText, originalIndex) { try { const textContent = String(timestampText); const listItem = document.createElement("li"); listItem.className = "ts-list-item"; listItem.dataset.originalIndex = originalIndex; const itemContainer = document.createElement("div"); itemContainer.className = "ts-item-container"; const hasValidTime = TIME_REGEX.test(textContent); const actionButtons = []; if (hasValidTime) { const jumpIcon = document.createElement("span"); jumpIcon.textContent = "▶️"; jumpIcon.className = "ts-jump-icon"; jumpIcon.title = "クリックでジャンプ"; jumpIcon.onclick = (e) => { e.stopPropagation(); jumpToTimestamp(textContent); }; actionButtons.push(jumpIcon); const minusButton = document.createElement("button"); minusButton.textContent = "-1s"; minusButton.className = "ts-adjust-button ts-minus-button ts-action-button"; minusButton.onclick = (e) => { e.stopPropagation(); adjustTimestamp(originalIndex, -1); }; actionButtons.push(minusButton); const plusButton = document.createElement("button"); plusButton.textContent = "+1s"; plusButton.className = "ts-adjust-button ts-plus-button ts-action-button"; plusButton.onclick = (e) => { e.stopPropagation(); adjustTimestamp(originalIndex, 1); }; actionButtons.push(plusButton); } const deleteButton = document.createElement("button"); deleteButton.textContent = "削除"; deleteButton.className = "ts-delete-button ts-action-button"; deleteButton.onclick = (e) => { e.stopPropagation(); deleteTimestamp(originalIndex); }; actionButtons.push(deleteButton); const displayContainer = document.createElement("div"); displayContainer.className = "ts-display-container"; const displayText = document.createElement("div"); displayText.className = "ts-display-text"; displayText.textContent = textContent; displayText.title = `Ctrl+クリックでジャンプ / 右クリックメニュー`; displayText.onclick = (e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) { jumpToTimestamp(textContent); } }; displayText.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); showTimestampContextMenu(e, textContent, displayText); }; itemContainer.append(...actionButtons); displayContainer.appendChild(displayText); itemContainer.appendChild(displayContainer); listItem.appendChild(itemContainer); return listItem; } catch (e) { console.error(LOG_TAG, "Error creating timestamp list item:", e, timestampText); return null; } }
 
-    // --- ★ Button Related Functions ---
     function createTimestampToggleButton() { if (document.getElementById(TOGGLE_BUTTON_ID)) return null; const button = document.createElement('button'); button.id = TOGGLE_BUTTON_ID; button.className = 'ytp-button timestamp-ext-star-button-left'; button.title = 'タイムスタンプ記録パネルを表示/非表示'; button.innerHTML = '★'; button.onclick = togglePanelVisibility; console.log(LOG_TAG, '★ Toggle Button created.'); timestampToggleButton = button; return button; }
     function injectTimestampToggleButton() { if (isToggleButtonInjected || !isExtensionEnabled) return; const playPauseButton = document.querySelector('.ytp-play-button'); const leftControls = document.querySelector('.ytp-left-controls'); if (playPauseButton && leftControls) { console.log(LOG_TAG, 'Player left controls found. Injecting ★ button...'); const buttonToInject = createTimestampToggleButton(); if (buttonToInject) { playPauseButton.insertAdjacentElement('afterend', buttonToInject); isToggleButtonInjected = true; console.log(LOG_TAG, '★ button injected successfully after play button.'); if (playerControlsCheckInterval) { clearInterval(playerControlsCheckInterval); playerControlsCheckInterval = null; console.log(LOG_TAG, 'Player controls check interval stopped.'); } } } }
     function removeTimestampToggleButton() { if (timestampToggleButton && timestampToggleButton.parentNode) { try { timestampToggleButton.remove(); console.log(LOG_TAG, '★ Toggle Button removed.'); } catch (e) { console.warn(LOG_TAG, 'Error removing toggle button:', e); } } timestampToggleButton = null; isToggleButtonInjected = false; }
     function checkAndInjectToggleButton() { if (!isExtensionEnabled || isToggleButtonInjected) { if (playerControlsCheckInterval) { clearInterval(playerControlsCheckInterval); playerControlsCheckInterval = null; } return; } if (playerControlsCheckInterval) { clearInterval(playerControlsCheckInterval); } let checkStartTime = Date.now(); console.log(LOG_TAG, 'Starting interval to find player controls for ★ button...'); playerControlsCheckInterval = setInterval(() => { if (isExtensionEnabled && !isToggleButtonInjected) { injectTimestampToggleButton(); if (Date.now() - checkStartTime > PLAYER_CONTROLS_CHECK_TIMEOUT_MS) { console.warn(LOG_TAG, `Player controls check timed out after ${PLAYER_CONTROLS_CHECK_TIMEOUT_MS}ms. Stopping check.`); clearInterval(playerControlsCheckInterval); playerControlsCheckInterval = null; if (!isToggleButtonInjected) { showErrorMessage("プレーヤー制御の検出に失敗しました (★)。"); } } } else { clearInterval(playerControlsCheckInterval); playerControlsCheckInterval = null; console.log(LOG_TAG, 'Stopping player controls check interval (disabled or injected).'); if (!isExtensionEnabled) { removeTimestampToggleButton(); } } }, PLAYER_CONTROLS_CHECK_INTERVAL_MS); }
     function togglePanelVisibility() { if (!container) return; container.classList.toggle('ts-panel-hidden'); const isHiddenNow = container.classList.contains('ts-panel-hidden'); console.log(LOG_TAG, `Panel visibility toggled. Hidden: ${isHiddenNow}`); localStorage.setItem('timestampPanelHidden', isHiddenNow); if (timestampToggleButton) { timestampToggleButton.style.transform = "scale(0.9)"; setTimeout(() => { if (timestampToggleButton) timestampToggleButton.style.transform = "scale(1)"; }, 100); } }
 
-    // --- Add Styles ---
     function addStyles() {
         const styleId = `timestamp-styles-${SCRIPT_VERSION}-left-star-ui`;
         if (document.getElementById(styleId)) { console.log(LOG_TAG, "Styles already added."); return; }
         console.log(LOG_TAG, "Adding styles...");
         const css = `
-            /* Base Styles */
             :root { --ts-font-size-base: 15px; --ts-font-size-small: 13px; --ts-font-size-large: 17px; --ts-primary-blue: #3498db; --ts-primary-green: #2ecc71; --ts-primary-red: #e74c3c; --ts-primary-orange: #f39c12; --ts-primary-grey: #95a5a6; --ts-text-dark: #333; --ts-text-light: #f8f8f8; --ts-border-color: #a0a0a0; --ts-resizer-color: #ccc; --ts-primary-copy-blue: #5dade2; --ts-primary-copy-blue-dark: #2e86c1; --ts-lock-red: #e74c3c; --ts-lock-red-dark: #c0392b; }
-            /* Container */
             .ts-container { position: absolute; z-index: 9998; display: flex; flex-direction: column; background: rgba(245, 245, 245, 0.97); border: 1px solid var(--ts-border-color); border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); user-select: none; resize: both; overflow: hidden; min-width: 550px; min-height: 350px; font-size: var(--ts-font-size-base); color: var(--ts-text-dark); pointer-events: auto; transition: opacity 0.3s ease-out, transform 0.3s ease-out; }
             .ts-container.ts-locked { resize: none !important; }
-            /* Top Bar */
             .ts-top-bar { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; gap: 14px; background: #e8e8e8; border-bottom: 1px solid #ccc; flex-shrink: 0; cursor: move; }
             .ts-top-bar.ts-locked { cursor: default; }
             .ts-time-display { padding: 6px 14px; background: rgba(40, 40, 40, 0.9); color: var(--ts-text-light); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; font-size: var(--ts-font-size-small); font-weight: bold; text-align: center; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); margin: 0; flex-shrink: 0; }
             .ts-record-button { padding: 8px 20px; background: linear-gradient(to bottom, #5dade2, var(--ts-primary-blue)); color: white; border: 1px solid #258cd1; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.25); cursor: pointer; font-size: var(--ts-font-size-base); font-weight: bold; border-radius: 5px; transition: all 0.15s ease; text-shadow: 1px 1px 1px rgba(0,0,0,0.3); margin: 0; flex-shrink: 0; }
             .ts-record-button:hover { background: linear-gradient(to bottom, #6ebef0, #3ea0e0); box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.25); }
             .ts-record-button:active { background: linear-gradient(to top, #5dade2, var(--ts-primary-blue)); transform: scale(0.97); box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.25); }
-            /* Main Content Area */
             #ts-main-content { display: flex; flex-grow: 1; width: 100%; overflow: hidden; background: #fdfdfd; }
-            /* Editor Pane */
             #ts-editor-pane { flex-shrink: 1; flex-grow: 1; display: flex; flex-direction: column; padding: 10px; min-width: ${MIN_PANE_WIDTH}px; overflow: hidden; position: relative; background-color: #fdfdfd; width: 45%; }
             #ts-editor-pane label { font-size: var(--ts-font-size-small); font-weight: bold; color: #555; margin-bottom: 6px; display: block; text-align: center; flex-shrink: 0; }
             #ts-bulk-editor { flex-grow: 1; width: 100%; box-sizing: border-box; border: 1px solid #c0c0c0; border-radius: 4px; padding: 10px 12px; font-size: var(--ts-font-size-base); line-height: 1.7; font-family: 'Segoe UI', Meiryo, Arial, sans-serif; resize: none; outline: none; transition: all 0.2s ease; background-color: #fff; min-height: 100px; overflow-y: auto; }
             #ts-bulk-editor:focus { border-color: var(--ts-primary-blue); box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3); }
             #ts-bulk-editor:read-only { background-color: #f5f5f5; cursor: not-allowed; border-color: #ddd; }
-            /* Resizer */
             #ts-pane-resizer { flex: 0 0 5px; background-color: var(--ts-resizer-color); cursor: col-resize; border-left: 1px solid #bbb; border-right: 1px solid #bbb; transition: background-color 0.2s ease; align-self: stretch; position: relative; z-index: 1; }
             #ts-pane-resizer:hover { background-color: #aaa; }
             #ts-pane-resizer.resizing { background-color: var(--ts-primary-blue); }
-            /* Display Pane */
             #ts-display-pane { flex-shrink: 1; flex-grow: 1; display: flex; flex-direction: column; padding: 0; margin-left: 5px; box-sizing: border-box; min-width: ${MIN_PANE_WIDTH}px; overflow: hidden; background-color: #ffffff; width: 55%; }
-            /* Display List */
             .ts-display-list-container { display: flex; flex-direction: column; flex-grow: 1; background: #ffffff; border: none; box-shadow: none; overflow: hidden; padding: 0 12px; }
             .ts-list-button-bar { display: flex; padding: 7px 0; gap: 10px; background: #f0f0f0; border-bottom: 1px solid #ddd; align-items: center; flex-wrap: nowrap; flex-shrink: 0; }
             .ts-list-button { padding: 7px 14px; font-size: var(--ts-font-size-small); font-weight: bold; border: 1px solid; border-radius: 4px; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
@@ -335,20 +298,16 @@
             .ts-delete-button:hover { background-color: #fadbd8; border-color: #f1948a; }
             .ts-display-container { flex-grow: 1; min-width: 120px; margin-left: 5px; cursor: default; border: none; background: none; overflow: hidden; }
             .ts-display-text { cursor: default; padding: 6px 2px; font-size: var(--ts-font-size-base); white-space: normal; overflow-wrap: break-word; word-break: break-all; max-width: 100%; line-height: 1.6; color: var(--ts-text-dark); }
-            /* Bottom Bar */
             .ts-bottom-bar { display: flex; align-items: center; justify-content: flex-end; padding: 7px 12px; gap: 12px; background: #e0e0e0; border-top: 1px solid #ccc; flex-shrink: 0; cursor: move; }
             .ts-bottom-bar.ts-locked { cursor: default; }
             .ts-bottom-controls { display: flex; gap: 12px; cursor: default; }
             .ts-bottom-button { padding: 8px 18px; font-size: var(--ts-font-size-base); font-weight: bold; border: none; cursor: pointer; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: all 0.15s ease; text-align: center; text-shadow: 1px 1px 1px rgba(0,0,0,0.15); color: white; flex-shrink: 0; white-space: nowrap; }
             .ts-bottom-button:active { transform: scale(0.97); box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.2); }
-            /* Lock Button */
             .ts-lock-button {}
             .ts-lock-button.ts-unlocked { background: linear-gradient(to bottom, var(--ts-lock-red), var(--ts-lock-red-dark)); }
             .ts-lock-button.ts-unlocked:hover { background: linear-gradient(to bottom, #f1948a, var(--ts-lock-red)); }
             .ts-lock-button.ts-locked { background: linear-gradient(to bottom, #58d68d, var(--ts-primary-green)); }
             .ts-lock-button.ts-locked:hover { background: linear-gradient(to bottom, #6fe09f, #36d97b); }
-
-            /* Context Menu, Modal, Message Box, Tooltip */
             .ts-context-menu { position: fixed; background-color: #ffffff; border: 1px solid #b0b0b0; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); z-index: 10001; padding: 6px 0; min-width: 160px; font-size: var(--ts-font-size-base); }
             .ts-context-menu-item { padding: 9px 20px; cursor: pointer; white-space: nowrap; color: #333; transition: background-color 0.1s ease; }
             .ts-context-menu-item:hover { background-color: #e8f0fe; color: var(--ts-primary-blue); }
@@ -373,7 +332,6 @@
             .ts-tooltip-hint { position: fixed; bottom: 25px; right: 25px; background-color: rgba(0,0,0,0.85); color: white; padding: 10px 15px; border-radius: 4px; font-size: var(--ts-font-size-small); z-index: 9999; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; }
             .ts-tooltip-hint.visible { opacity: 1; }
 
-            /* --- ADDED/UPDATED: Left Star Button Styles --- */
             #${TOGGLE_BUTTON_ID}.timestamp-ext-star-button-left {
                 color: white; font-size: 26px; padding: 0 6px; margin-left: 8px;
                 opacity: 0.9; height: 100%; display: inline-flex !important; align-items: center;
@@ -382,7 +340,6 @@
             }
             #${TOGGLE_BUTTON_ID}.timestamp-ext-star-button-left:hover { opacity: 1; }
 
-            /* --- ADDED: Panel Hidden Style --- */
             .ts-panel-hidden { display: none !important; }
         `;
         try {
@@ -392,7 +349,6 @@
         } catch (e) { console.error(LOG_TAG, "Failed to add styles:", e); }
     }
 
-    // --- Container Resize Handling (Warning Removed) ---
     function handleContainerResize(entries) {
         if(isResizingPanes) return;
         if (resizeTimeout) clearTimeout(resizeTimeout);
@@ -401,23 +357,19 @@
                 if (entry.target === container && editorPane && displayPane && resizerElement && mainContentElement) {
                      try {
                          const parentWidth = mainContentElement.clientWidth;
-                         if (parentWidth < 10) { continue; } // Skip if parent is tiny
+                         if (parentWidth < 10) { continue; }
 
                          const resizerW = resizerElement.offsetWidth;
                          const availableWidth = parentWidth - resizerW;
 
-                         // *** Check if width is too small ***
                          if (availableWidth <= (MIN_PANE_WIDTH * 2)) {
-                             // *** console.warn REMOVED ***
-                             // Set fallback flex-basis and continue
                              if (editorPane && displayPane) {
                                  editorPane.style.width = ''; displayPane.style.width = '';
                                  editorPane.style.flexBasis = '45%'; displayPane.style.flexBasis = '55%';
                              }
-                             continue; // Skip pixel calculations for this entry
+                             continue;
                          }
 
-                         // --- Width is sufficient, proceed with pixel calculation ---
                          let targetEditorWidth;
                          const savedEditorWidthPx = localStorage.getItem('timestampEditorWidth');
                          if (savedEditorWidthPx) {
@@ -432,23 +384,20 @@
                          newEditorWidth = Math.max(MIN_PANE_WIDTH, newEditorWidth);
                          editorPane.style.width = `${newEditorWidth}px`; displayPane.style.width = `${newDisplayWidth}px`;
                          editorPane.style.flexBasis = ''; displayPane.style.flexBasis = '';
-                         // --- End of pixel calculation ---
 
                      } catch (error) { console.error(LOG_TAG, "Error handling container resize:", error); }
                 }
             }
-            saveContainerPosition(); // Save position after processing all entries
+            saveContainerPosition();
         }, RESIZE_DEBOUNCE_MS);
     }
 
-    // --- UI Initialization ---
     function initializeUI() {
         const containerId = CONTAINER_ID; const oldContainer = document.getElementById(containerId);
         if (oldContainer) { try { oldContainer.remove(); } catch(e) { console.warn(LOG_TAG, "Error removing old container:", e); } }
         if (containerResizeObserver) { try { containerResizeObserver.disconnect(); } catch(e) { console.warn(LOG_TAG, "Error disconnecting old ResizeObserver:", e); } containerResizeObserver = null; }
         try {
             addStyles();
-            // Create Elements (hideButton creation removed)
             container = document.createElement("div"); container.className = "ts-container"; container.id = containerId;
             topBarElement = document.createElement("div"); topBarElement.className = "ts-top-bar";
             currentTimeDisplay = document.createElement("div"); currentTimeDisplay.id = "ts-current-time"; currentTimeDisplay.className = "ts-time-display"; currentTimeDisplay.textContent = "読み込み中...";
@@ -468,35 +417,26 @@
             bottomBarElement = document.createElement("div"); bottomBarElement.className = "ts-bottom-bar";
             const bottomControls = document.createElement("div"); bottomControls.className = "ts-bottom-controls";
             lockButton = document.createElement("button"); lockButton.id = "ts-lock-button"; lockButton.className = "ts-bottom-button ts-lock-button";
-            // Append Elements (hideButton appending removed)
             topBarElement.append(currentTimeDisplay, recordBtn); editorPane.append(editorLabel, bulkEditor);
             listButtonBar.append(copyAllButton, sortButton, deleteAllButton); displayListContainer.append(listButtonBar, displayListElement);
             displayPane.append(displayListContainer); mainContentElement.append(editorPane, resizerElement, displayPane);
             bottomControls.append(lockButton); bottomBarElement.append(bottomControls); container.append(topBarElement, mainContentElement, bottomBarElement);
             document.body.appendChild(container);
-            // Restore panel visibility if saved
             const savedPanelHidden = localStorage.getItem('timestampPanelHidden') === 'true';
             if (savedPanelHidden) { container.classList.add('ts-panel-hidden'); }
             else { container.classList.remove('ts-panel-hidden'); }
-            // Set Initial Position/Size
             const savedPosition = loadContainerPosition(); container.style.left = savedPosition.left; container.style.top = savedPosition.top; container.style.width = savedPosition.width; container.style.height = savedPosition.height;
-            requestAnimationFrame(() => { /* Get original styles */ if (!container) return; try { container.dataset.originalBg=window.getComputedStyle(container).backgroundColor; container.dataset.originalBorder=window.getComputedStyle(container).border; container.dataset.originalBoxShadow=window.getComputedStyle(container).boxShadow; container.dataset.originalPointerEvents=window.getComputedStyle(container).pointerEvents; container.dataset.originalOverflow=window.getComputedStyle(container).overflow; container.dataset.originalResize=window.getComputedStyle(container).resize||"both"; container.dataset.originalMinWidth=container.style.minWidth||window.getComputedStyle(container).minWidth; container.dataset.originalMinHeight=container.style.minHeight||window.getComputedStyle(container).minHeight; applySavedPaneWidths(); } catch(t){ console.error(LOG_TAG,"Error storing original styles:",t); } });
-            // Add Event Listeners (hideButton listener removed)
+            requestAnimationFrame(() => { if (!container) return; try { container.dataset.originalBg=window.getComputedStyle(container).backgroundColor; container.dataset.originalBorder=window.getComputedStyle(container).border; container.dataset.originalBoxShadow=window.getComputedStyle(container).boxShadow; container.dataset.originalPointerEvents=window.getComputedStyle(container).pointerEvents; container.dataset.originalOverflow=window.getComputedStyle(container).overflow; container.dataset.originalResize=window.getComputedStyle(container).resize||"both"; container.dataset.originalMinWidth=container.style.minWidth||window.getComputedStyle(container).minWidth; container.dataset.originalMinHeight=container.style.minHeight||window.getComputedStyle(container).minHeight; applySavedPaneWidths(); } catch(t){ console.error(LOG_TAG,"Error storing original styles:",t); } });
             if(typeof updateSortButtonText === 'function') updateSortButtonText(); recordBtn.onclick = recordTimestamp; copyAllButton.onclick = copyAllTimestamps; sortButton.onclick = toggleSortOrder; deleteAllButton.onclick = (e) => { e.stopPropagation(); e.preventDefault(); showConfirmDeleteAllModal(); }; lockButton.onclick = toggleLock; bulkEditor.addEventListener("input", handleEditorChange); bulkEditor.addEventListener("keydown", function(e){ if(e.key==="Enter"){} });
-            // Add Drag Listeners
             const addDragListener = (dragHandle) => { if (!dragHandle) return; let startX, startY, initialLeft, initialTop; const handleDragMove = (moveEvent) => { if (!isDraggingContainer || isResizingPanes || !container) return; if (rafDragId) cancelAnimationFrame(rafDragId); rafDragId = requestAnimationFrame(() => { if (!isDraggingContainer || isResizingPanes || !container) return; const currentX = moveEvent.clientX; const currentY = moveEvent.clientY; container.style.left = `${initialLeft + (currentX - startX)}px`; container.style.top = `${initialTop + (currentY - startY)}px`; rafDragId = null; }); }; const handleDragEnd = () => { if (rafDragId) cancelAnimationFrame(rafDragId); rafDragId = null; if (isDraggingContainer) { isDraggingContainer = false; document.body.style.cursor = ""; document.body.style.userSelect = ""; saveContainerPosition(); document.removeEventListener('mousemove', handleDragMove); document.removeEventListener('mouseup', handleDragEnd); } }; dragHandle.addEventListener('mousedown', (e) => { if (e.target !== dragHandle) { let currentTarget = e.target; while (currentTarget && currentTarget !== dragHandle) { if (currentTarget.tagName === 'BUTTON' || currentTarget.classList.contains('ts-bottom-controls') || currentTarget.classList.contains('ts-time-display')) { return; } currentTarget = currentTarget.parentElement; } } if (isLocked || e.button !== 0 || isResizingPanes || !container ) return; isDraggingContainer = true; const rect = container.getBoundingClientRect(); startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top; document.body.style.cursor = "move"; document.body.style.userSelect = "none"; document.addEventListener('mousemove', handleDragMove); document.addEventListener('mouseup', handleDragEnd, { once: true }); e.preventDefault(); }); };
             addDragListener(topBarElement); addDragListener(bottomBarElement);
-            // Add Pane Resizer Listener
             if (resizerElement && editorPane && displayPane && mainContentElement) { const handleMouseMove = (moveEvent) => { if (!isResizingPanes) return; try { const parentRect = mainContentElement.getBoundingClientRect(); const resizerW = resizerElement.offsetWidth; const totalWidth = parentRect.width; const availableW = totalWidth - resizerW; if (availableW <= MIN_PANE_WIDTH * 2) return; let newEditorWidth = moveEvent.clientX - parentRect.left; newEditorWidth = Math.max(MIN_PANE_WIDTH, newEditorWidth); newEditorWidth = Math.min(newEditorWidth, availableW - MIN_PANE_WIDTH); let newDisplayWidth = availableW - newEditorWidth; editorPane.style.width = `${newEditorWidth}px`; displayPane.style.width = `${newDisplayWidth}px`; editorPane.style.flexBasis = ''; displayPane.style.flexBasis = ''; } catch (error) { console.error(LOG_TAG, "Error during pane resize move:", error); } }; const handleMouseUp = () => { if (!isResizingPanes) return; isResizingPanes = false; document.removeEventListener('mousemove', handleMouseMove); document.removeEventListener('mouseup', handleMouseUp); document.body.style.cursor = ''; document.body.style.userSelect = ''; if (resizerElement) { resizerElement.classList.remove('resizing'); } saveContainerPosition(); }; const handleMouseDown = (downEvent) => { if (isLocked || downEvent.button !== 0) return; isResizingPanes = true; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; if (resizerElement) { resizerElement.classList.add('resizing'); } document.addEventListener('mousemove', handleMouseMove); document.addEventListener('mouseup', handleMouseUp); downEvent.preventDefault(); }; resizerElement.addEventListener('mousedown', handleMouseDown); } else { console.warn(LOG_TAG, "Resizer/panes not found. Resizing disabled."); }
-            // Add Resize Observer
             if ('ResizeObserver' in window && container) { try { containerResizeObserver = new ResizeObserver(handleContainerResize); containerResizeObserver.observe(container); console.log(LOG_TAG, "Container ResizeObserver started."); } catch (e) { console.error(LOG_TAG, "Failed to create/observe ResizeObserver:", e); containerResizeObserver = null; } } else { console.warn(LOG_TAG, "ResizeObserver not supported or container missing."); }
-            // Load State and Apply (applyHiddenState removed)
             loadState(); applyLockState(); startCurrentTimeUpdate(); showTooltipHint();
             console.log(LOG_TAG, "Timestamp panel UI initialized.");
         } catch (uiError) { console.error(LOG_TAG, "UI 初期化失敗:", uiError); showErrorMessage("スクリプトUIの読み込みに失敗しました！"); if (container?.parentNode) { try { container.remove(); } catch(e) {} } container = null; if (containerResizeObserver) { try { containerResizeObserver.disconnect(); } catch(e) {} containerResizeObserver = null; } }
     }
 
-    // --- Initialization Retry Logic ---
     function runInitialization() {
         console.log(LOG_TAG, `[${initRetryCount}] runInitialization attempt (Left Star)...`);
         const existingContainer = document.getElementById(CONTAINER_ID);
@@ -514,13 +454,12 @@
         if (initTimeoutId) clearTimeout(initTimeoutId); initTimeoutId = setTimeout(runInitialization, retryDelay);
     }
 
-    // --- SPA Navigation Listener ---
     let lastUrl = location.href;
     const observerCallback = (mutationsList, observerInstance) => {
         requestAnimationFrame(() => {
             const currentUrl = location.href; if (currentUrl !== lastUrl && currentUrl.includes('youtube.com')) {
                 console.log(LOG_TAG, `URL changed: ${lastUrl} -> ${currentUrl}. Re-evaluating...`); lastUrl = currentUrl;
-                cleanupExtensionUI(); // Always cleanup first
+                cleanupExtensionUI();
                 if (isExtensionEnabled && currentUrl.includes('/watch?v=')) { console.log(LOG_TAG, "New URL is watch page & enabled. Scheduling initialization."); setTimeout(runInitialization, 500); }
                 else { console.log(LOG_TAG, `Not watch page or disabled (${isExtensionEnabled}). Skipping init.`); if (initTimeoutId) clearTimeout(initTimeoutId); initTimeoutId = null; initRetryCount = 0; if (playerControlsCheckInterval) clearInterval(playerControlsCheckInterval); playerControlsCheckInterval = null; }
             }
@@ -529,10 +468,8 @@
     try { const observeTargetNode = document.querySelector('ytd-page-manager') || document.body; if (observeTargetNode) { pageObserver = new MutationObserver(observerCallback); pageObserver.observe(observeTargetNode, { childList: true, subtree: true }); console.log(LOG_TAG, "Page MutationObserver started on:", observeTargetNode.id || observeTargetNode.tagName); } else { console.error(LOG_TAG, "Page MutationObserver target not found!"); } }
     catch (e) { console.error(LOG_TAG, "Failed to start Page MutationObserver:", e); }
 
-    // --- Tooltip Hint Function ---
     function showTooltipHint() { if (firstTimeUser && !document.getElementById("ts-tooltip-hint")) { try { const hint = document.createElement("div"); hint.id = "ts-tooltip-hint"; hint.className = "ts-tooltip-hint"; hint.textContent = "ヒント: 左パネルで編集、右パネルでCtrl+クリックジャンプ / 右クリックメニュー"; document.body.appendChild(hint); setTimeout(() => { hint.classList.add("visible"); }, 100); setTimeout(() => { if (!hint.parentNode) return; hint.classList.remove("visible"); hint.addEventListener("transitionend", () => { try { hint.remove(); } catch(e) {} }, { once: true }); setTimeout(() => { hint.parentNode && (() => { try { hint.remove(); } catch(e) {} })(); }, 600); }, 8000); } catch(t) { console.error(LOG_TAG, "Failed to show tooltip hint:", t); } } }
 
-    // --- Initial Script Start Logic ---
     function initialStart() {
        console.log(LOG_TAG, "initialStart function called (V5.2)");
        chrome.storage.sync.get([STORAGE_KEY_ENABLED], (result) => {
@@ -544,7 +481,6 @@
        });
     }
 
-    // --- Storage Change Listener ---
     chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'sync' && changes[STORAGE_KEY_ENABLED]) {
             const newState = changes[STORAGE_KEY_ENABLED].newValue; const oldState = changes[STORAGE_KEY_ENABLED].oldValue;
@@ -556,11 +492,9 @@
         }
     });
 
-    // --- Determine when to call initialStart ---
     if (document.readyState === 'interactive' || document.readyState === 'complete') { console.log(LOG_TAG, "DOM ready, calling initialStart."); initialStart(); }
     else { console.log(LOG_TAG, "DOM not ready, adding DOMContentLoaded listener."); document.addEventListener('DOMContentLoaded', () => { console.log(LOG_TAG, "DOMContentLoaded fired, calling initialStart."); initialStart(); }, { once: true }); }
 
-    // --- Cleanup on Unload ---
     window.addEventListener('beforeunload', () => { console.log(LOG_TAG, "beforeunload event, cleaning up..."); cleanupExtensionUI(); if (pageObserver) { try { pageObserver.disconnect(); pageObserver = null; } catch(e) {} } console.log(LOG_TAG, "Unload cleanup finished."); });
 
-})(); // <-- End of IIFE
+})();
