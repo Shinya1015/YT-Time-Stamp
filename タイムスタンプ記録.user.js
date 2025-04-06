@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         タイムスタンプ記録
 // @namespace    https://www.youtube.com/
-// @version      11.20-mod-final-no-comments
+// @version      11.20
 // @description  タイムスタンプ記録
 // @match        *://www.youtube.com/watch?v*
 // @grant        none
@@ -38,6 +38,8 @@
     let startDisplayWidth = 0;
     let containerResizeObserver = null;
     let resizeTimeout = null;
+    let contextMenuCloseListener = null; // Added missing variable from original
+    let messageTimeoutId = null; // Added missing variable from original
 
     const DRAG_THRESHOLD = 150;
     const DRAG_MOVE_THRESHOLD = 5;
@@ -46,9 +48,59 @@
     const TIME_REGEX = /^(\d+):(\d{2}):(\d{2})/;
     const MIN_PANE_WIDTH = 100;
 
+    // --- showMessage functions (essential for user feedback) ---
+    function showMessage(message, type = 'info', duration = 3000) {
+        const existingBox = document.getElementById('ts-message-box-instance');
+        if (existingBox) existingBox.remove();
+        if (messageTimeoutId) clearTimeout(messageTimeoutId);
+
+        const messageBox = document.createElement("div");
+        messageBox.id = 'ts-message-box-instance';
+        messageBox.textContent = message;
+        messageBox.className = `ts-message-box ${type}`;
+        // Check if document.body exists before appending
+        if (document.body) {
+             document.body.appendChild(messageBox);
+             requestAnimationFrame(() => {
+                 requestAnimationFrame(() => {
+                     messageBox.classList.add('visible');
+                 });
+             });
+        } else {
+            // Failsafe if body isn't ready (should ideally not happen at document-idle)
+            return;
+        }
+
+
+        messageTimeoutId = setTimeout(() => {
+            if (!messageBox.parentNode) return;
+            messageBox.classList.remove('visible');
+            messageBox.classList.add('fade-out');
+
+            messageBox.addEventListener('transitionend', () => {
+                if (messageBox.parentNode) messageBox.remove();
+                messageTimeoutId = null;
+            }, { once: true });
+
+            // Backup removal timer
+            setTimeout(() => {
+                if (messageBox.parentNode) messageBox.remove();
+                if (messageTimeoutId) messageTimeoutId = null;
+            }, duration + 500); // Slightly longer than transition
+
+        }, duration);
+    }
+    function showSuccessMessage(message) { showMessage(message, 'success', 2500); }
+    function showErrorMessage(message) { showMessage(message, 'error', 5000); }
+    function showInfoMessage(message) { showMessage(message, 'info', 3000); }
+    function showJumpSuccessMessage(timestamp) { showMessage(`ジャンプ成功: ${timestamp}`, 'jump', 2000); }
+    function showCopySuccessMessage(text) { showMessage(`${text}`, 'success', 2000); }
+    // --- End showMessage functions ---
+
     function loadState() {
         const storedTimestamps = localStorage.getItem('timestamps');
-        if (storedTimestamps) { try { timestamps = JSON.parse(storedTimestamps); } catch (e) { console.error('タイムスタンプの読み込みに失敗:', e); timestamps = []; } } else { timestamps = []; }
+        // Use showErrorMessage for user feedback on load failure
+        if (storedTimestamps) { try { timestamps = JSON.parse(storedTimestamps); } catch (e) { timestamps = []; showErrorMessage("タイムスタンプの読み込みに失敗"); } } else { timestamps = []; }
         isLocked = localStorage.getItem('timestampLockState') === 'true';
         isHidden = localStorage.getItem('timestampHiddenState') === 'true';
         firstTimeUser = localStorage.getItem('timestampFirstTime') === null;
@@ -76,7 +128,7 @@
                     editorPane.style.flexBasis = '';
                     displayPane.style.flexBasis = '';
                 } else {
-                    console.warn("保存されたエディター幅が無効または範囲外です。デフォルトの比率を使用します。");
+                    // Removed console.warn, rely on default behavior
                     editorPane.style.width = '';
                     displayPane.style.width = '';
                     editorPane.style.flexBasis = '45%';
@@ -102,7 +154,7 @@
             }
             localStorage.setItem('timestamps', JSON.stringify(timestamps));
         } catch (e) {
-            console.error("Failed to save timestamps:", e);
+            // Keep user feedback
             showErrorMessage("タイムスタンプ保存失敗！");
         }
     }
@@ -122,9 +174,8 @@
             if (editorPane && editorPane.style.width && !isResizingPanes) {
                  localStorage.setItem('timestampEditorWidth', editorPane.style.width);
             }
-
         } catch (e) {
-            console.error("Failed to save container position/size:", e);
+            // Removed console.error, fail silently if position save fails
         }
     }
 
@@ -142,7 +193,7 @@
                     };
                 }
             } catch (e) {
-                console.error('位置情報読み込み失敗:', e);
+                // Removed console.error, use default if load fails
             }
         }
         return { left: "360px", top: "500px", width: "680px", height: "380px" };
@@ -165,7 +216,7 @@
                     const timeText = formatTime(currentVideoTime);
                     currentTimeDisplay.textContent = `再生時間 ${timeText}`;
                 } catch (e) {
-                    console.error("Error updating time display:", e);
+                    // Keep UI feedback for error
                     currentTimeDisplay.textContent = '時刻表示エラー';
                 }
             } else {
@@ -222,11 +273,11 @@
                     setTimeout(() => { bulkEditor.scrollTop = bulkEditor.scrollHeight; }, 0);
                 }
             } catch (err) {
-                console.error("Error recording timestamp:", err);
+                // Keep user feedback
                 showErrorMessage("記録エラー: " + err.message);
             }
         } else {
-            console.error("Cannot record: Video not ready or currentTime invalid.", video, video?.currentTime);
+            // Keep user feedback
             showErrorMessage("動画が見つからないか、再生時間を取得できません。");
         }
     }
@@ -251,10 +302,11 @@
                 renderTimestampList();
                 jumpToTimestamp(newTimestamp);
             } catch (e) {
-                console.error("Error adjusting timestamp:", e);
+                // Keep user feedback
                 showErrorMessage("時間調整エラー。");
             }
         } else {
+             // Keep user feedback
             showErrorMessage("時間調整エラー：時間形式 (HH:MM:SS) が見つかりません。");
         }
     }
@@ -283,16 +335,18 @@
                     } else {
                         video.currentTime = totalSeconds;
                     }
-                    video.play().catch(e => console.warn("再生失敗:", e));
+                    // Removed console.warn for play failure
+                    video.play().catch(e => {});
                     showJumpSuccessMessage(match[0]);
                 } else {
                     showErrorMessage("動画プレーヤーが見つかりません。");
                 }
             } catch (e) {
-                console.error("Error jumping to timestamp:", e);
+                // Keep user feedback
                 showErrorMessage("ジャンプエラー。");
             }
         } else {
+            // Keep user feedback
             showErrorMessage(`ジャンプエラー：時間形式 (HH:MM:SS) が見つかりません。(${timestampStr.substring(0, 10)}...)`);
         }
     }
@@ -306,6 +360,7 @@
                     return h * 3600 + m * 60 + s;
                 }
             } catch (e) {
+                // Fail silently if parsing fails
             }
         }
         return null;
@@ -346,7 +401,7 @@
             renderTimestampList();
             showInfoMessage("すべての記録が削除されました。");
         } catch (error) {
-            console.error("Error in deleteAllTimestampsConfirmed:", error);
+            // Keep user feedback
             showErrorMessage("全削除処理中にエラーが発生しました。");
         }
     }
@@ -372,7 +427,7 @@
                      deleteAllTimestampsConfirmed();
                      modalOverlay.remove();
                 } catch (e) {
-                     console.error("Error during deleteAllTimestampsConfirmed or modal removal:", e);
+                     // Keep user feedback
                      showErrorMessage("削除処理中にエラーが発生しました。");
                      if (modalOverlay && modalOverlay.parentNode) { modalOverlay.remove(); }
                 }
@@ -428,7 +483,7 @@
             cancelButton.focus();
 
          } catch (error) {
-             console.error("Error CREATING or ADDING delete confirmation modal:", error);
+             // Keep user feedback
              showErrorMessage("削除確認ウィンドウ表示中にエラー発生");
              if (modalOverlay && modalOverlay.parentNode) {
                   modalOverlay.remove();
@@ -446,7 +501,7 @@
             const lineCount = textToCopy.split('\n').filter(line => line.trim() !== '').length;
             showCopySuccessMessage(`エディター内容 全${lineCount}行コピー！`);
         }).catch(err => {
-            console.error('コピー失敗:', err);
+            // Keep user feedback
             showErrorMessage("コピーに失敗しました。");
         });
     }
@@ -456,7 +511,7 @@
         navigator.clipboard.writeText(String(text)).then(() => {
             showCopySuccessMessage(`コピー: ${String(text).substring(0, 50)}${String(text).length > 50 ? '...' : ''}`);
         }).catch(err => {
-            console.error('コピー失敗:', err);
+            // Keep user feedback
             showErrorMessage("コピー失敗。");
         });
     }
@@ -512,7 +567,7 @@
 
    function applyHiddenState() {
         if (!container || !hideButton || !topBarElement || !mainContentElement || !bottomBarElement || !resizerElement) {
-            console.warn("applyHiddenState: Required elements missing.");
+            // Removed console.warn
             return;
         }
 
@@ -535,18 +590,21 @@
             container.style.overflow = 'visible';
             container.style.pointerEvents = 'none';
 
-            const rect = hideButton.getBoundingClientRect();
-            hideButtonLastViewportPos = { left: rect.left, top: rect.top };
+            // Ensure hideButton exists before accessing getBoundingClientRect
+            if (hideButton) {
+                const rect = hideButton.getBoundingClientRect();
+                hideButtonLastViewportPos = { left: rect.left, top: rect.top };
 
-            hideButton.style.position = 'fixed';
-            hideButton.style.left = `${hideButtonLastViewportPos.left}px`;
-            hideButton.style.top = `${hideButtonLastViewportPos.top}px`;
-            hideButton.style.visibility = 'visible';
-            hideButton.style.pointerEvents = 'auto';
-            hideButton.style.zIndex = '9999';
-            hideButton.textContent = "表示";
-            hideButton.classList.add('ts-hidden-state');
-            hideButton.classList.remove('ts-visible-state');
+                hideButton.style.position = 'fixed';
+                hideButton.style.left = `${hideButtonLastViewportPos.left}px`;
+                hideButton.style.top = `${hideButtonLastViewportPos.top}px`;
+                hideButton.style.visibility = 'visible';
+                hideButton.style.pointerEvents = 'auto';
+                hideButton.style.zIndex = '9999';
+                hideButton.textContent = "表示";
+                hideButton.classList.add('ts-hidden-state');
+                hideButton.classList.remove('ts-visible-state');
+            }
 
         } else {
             container.style.pointerEvents = container.dataset.originalPointerEvents || 'auto';
@@ -559,19 +617,22 @@
             mainContentElement.style.visibility = 'visible';
             bottomBarElement.style.visibility = 'visible';
 
-            hideButton.style.position = '';
-            hideButton.style.left = '';
-            hideButton.style.top = '';
-            hideButton.style.zIndex = '';
-            hideButton.style.visibility = 'visible';
-            hideButton.style.pointerEvents = 'auto';
-            hideButton.textContent = "隠す";
-            hideButton.classList.remove('ts-hidden-state');
-            hideButton.classList.add('ts-visible-state');
+            if (hideButton) { // Check hideButton exists
+                hideButton.style.position = '';
+                hideButton.style.left = '';
+                hideButton.style.top = '';
+                hideButton.style.zIndex = '';
+                hideButton.style.visibility = 'visible';
+                hideButton.style.pointerEvents = 'auto';
+                hideButton.textContent = "隠す";
+                hideButton.classList.remove('ts-hidden-state');
+                hideButton.classList.add('ts-visible-state');
+            }
 
-            applyLockState();
+            applyLockState(); // Apply lock state which might affect resizer visibility etc.
         }
     }
+
 
     function populateEditorFromTimestamps() {
         if (!bulkEditor) return;
@@ -648,7 +709,7 @@
             displayListElement.appendChild(fragment);
 
         } catch (e) {
-            console.error("Error rendering timestamp display list:", e);
+             // Keep user feedback
             showErrorMessage("リスト表示エラー。");
             if (displayListElement) {
                  while (displayListElement.firstChild) displayListElement.removeChild(displayListElement.firstChild);
@@ -722,7 +783,7 @@
         return listItem;
     }
 
-    let contextMenuCloseListener = null;
+
     function showTimestampContextMenu(e, timestamp, element) {
         closeExistingContextMenu();
 
@@ -761,12 +822,14 @@
             if (menuElement && !menuElement.contains(event.target)) {
                 closeExistingContextMenu();
             } else if (menuElement) {
+                // Keep listener active if clicked inside menu, reset on next cycle
                 setTimeout(() => {
                     document.addEventListener('click', contextMenuCloseListener, { capture: true, once: true });
                     document.addEventListener('contextmenu', contextMenuCloseListener, { capture: true, once: true });
                 }, 0);
             }
         };
+        // Add listener after current event cycle finishes
         setTimeout(() => {
             document.addEventListener('click', contextMenuCloseListener, { capture: true, once: true });
             document.addEventListener('contextmenu', contextMenuCloseListener, { capture: true, once: true });
@@ -785,47 +848,6 @@
         }
     }
 
-    let messageTimeoutId = null;
-    function showMessage(message, type = 'info', duration = 3000) {
-        const existingBox = document.getElementById('ts-message-box-instance');
-        if (existingBox) existingBox.remove();
-        if (messageTimeoutId) clearTimeout(messageTimeoutId);
-
-        const messageBox = document.createElement("div");
-        messageBox.id = 'ts-message-box-instance';
-        messageBox.textContent = message;
-        messageBox.className = `ts-message-box ${type}`;
-        document.body.appendChild(messageBox);
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                messageBox.classList.add('visible');
-            });
-        });
-
-        messageTimeoutId = setTimeout(() => {
-            if (!messageBox.parentNode) return;
-            messageBox.classList.remove('visible');
-            messageBox.classList.add('fade-out');
-
-            messageBox.addEventListener('transitionend', () => {
-                if (messageBox.parentNode) messageBox.remove();
-                messageTimeoutId = null;
-            }, { once: true });
-
-            setTimeout(() => {
-                if (messageBox.parentNode) messageBox.remove();
-                if (messageTimeoutId) messageTimeoutId = null;
-            }, duration + 500);
-
-        }, duration);
-    }
-
-    function showSuccessMessage(message) { showMessage(message, 'success', 2500); }
-    function showErrorMessage(message) { showMessage(message, 'error', 5000); }
-    function showInfoMessage(message) { showMessage(message, 'info', 3000); }
-    function showJumpSuccessMessage(timestamp) { showMessage(`ジャンプ成功: ${timestamp}`, 'jump', 2000); }
-    function showCopySuccessMessage(text) { showMessage(`${text}`, 'success', 2000); }
 
     function addStyles() {
         const styleId = 'timestamp-styles-v11.20-ui';
@@ -972,8 +994,10 @@
         const styleSheet = document.createElement("style");
         styleSheet.id = styleId;
         styleSheet.textContent = css;
+        // Ensure head exists before appending
         (document.head || document.body).appendChild(styleSheet);
     }
+
 
     function handleContainerResize(entries) {
         if (isResizingPanes) return;
@@ -983,6 +1007,7 @@
             for (let entry of entries) {
                 if (entry.target === container && editorPane && displayPane && resizerElement) {
                     const newContainerWidth = entry.contentRect.width;
+                    // Ensure mainContentElement exists before accessing clientWidth
                     const mainContentWidth = mainContentElement ? mainContentElement.clientWidth : newContainerWidth;
                     const resizerWidth = resizerElement.offsetWidth;
                     const newAvailableWidth = mainContentWidth - resizerWidth;
@@ -999,6 +1024,7 @@
 
                      let newEditorWidth = Math.max(MIN_PANE_WIDTH, Math.min(lastEditorWidthPx, newAvailableWidth - MIN_PANE_WIDTH));
                      let newDisplayWidth = Math.max(MIN_PANE_WIDTH, newAvailableWidth - newEditorWidth);
+                     // Recalculate editor width based on display width to ensure sum fits
                      newEditorWidth = newAvailableWidth - newDisplayWidth;
 
                      if (newAvailableWidth > (MIN_PANE_WIDTH * 2)) {
@@ -1006,12 +1032,19 @@
                         displayPane.style.width = `${newDisplayWidth}px`;
                         editorPane.style.flexBasis = '';
                         displayPane.style.flexBasis = '';
+                     } else {
+                        // If not enough space, revert to flex-basis defaults
+                        editorPane.style.width = '';
+                        displayPane.style.width = '';
+                        editorPane.style.flexBasis = '45%';
+                        displayPane.style.flexBasis = '55%';
                      }
                 }
             }
              saveContainerPosition();
         }, RESIZE_DEBOUNCE_MS);
     }
+
 
     function initializeUI() {
         const containerId = 'ts-container-main';
@@ -1061,7 +1094,14 @@
             bottomControls.append(lockButton, hideButton);
             bottomBarElement.append(bottomControls);
             container.append(topBarElement, mainContentElement, bottomBarElement);
-            document.body.appendChild(container);
+            // Ensure body exists before appending container
+            if (document.body) {
+                document.body.appendChild(container);
+            } else {
+                 // Handle rare case where body isn't ready even at document-idle
+                 throw new Error("Document body not available for UI injection.");
+            }
+
 
             const savedPosition = loadContainerPosition();
             container.style.left = savedPosition.left;
@@ -1096,7 +1136,8 @@
 
             bulkEditor.addEventListener('input', handleEditorChange);
              bulkEditor.addEventListener('keydown', function(event) {
-                if (event.key === 'Enter') { }
+                // Prevent default Enter behavior if needed, currently does nothing
+                if (event.key === 'Enter') { /* Add specific behavior if desired */ }
             });
 
              const addDragListener = (element) => {
@@ -1105,7 +1146,7 @@
                      if (!isDraggingContainer || isResizingPanes) return;
                      if (rafDragId) cancelAnimationFrame(rafDragId);
                      rafDragId = requestAnimationFrame(() => {
-                         if (!isDraggingContainer || isResizingPanes) return;
+                         if (!isDraggingContainer || isResizingPanes || !container) return; // Add check for container
                          const currentX = moveEvent.clientX; const currentY = moveEvent.clientY;
                          container.style.left = `${initialLeft + (currentX - dragStartX)}px`;
                          container.style.top = `${initialTop + (currentY - dragStartY)}px`;
@@ -1123,6 +1164,7 @@
                      }
                  };
                  element.addEventListener('mousedown', (e) => {
+                    // Check if target is within non-draggable controls
                     if (e.target !== element) {
                         let targetElement = e.target;
                         while (targetElement && targetElement !== element) {
@@ -1130,7 +1172,7 @@
                             targetElement = targetElement.parentElement;
                         }
                     }
-                    if (isLocked || e.button !== 0 || isResizingPanes || isDraggingFromHideButton) return;
+                    if (isLocked || e.button !== 0 || isResizingPanes || isDraggingFromHideButton || !container) return; // Add check for container
 
                     isDraggingContainer = true;
                     const rect = container.getBoundingClientRect();
@@ -1153,14 +1195,15 @@
                  let newDisplayWidth = startDisplayWidth - dx;
 
                  const totalWidth = startEditorWidth + startDisplayWidth;
-                 if (totalWidth <= 0) return;
+                 if (totalWidth <= 0) return; // Avoid division by zero or weird behavior
 
+                 // Ensure minimum widths
                  newEditorWidth = Math.max(MIN_PANE_WIDTH, Math.min(newEditorWidth, totalWidth - MIN_PANE_WIDTH));
-                 newDisplayWidth = totalWidth - newEditorWidth;
+                 newDisplayWidth = totalWidth - newEditorWidth; // Calculate display width based on constrained editor width
 
                  editorPane.style.width = `${newEditorWidth}px`;
                  displayPane.style.width = `${newDisplayWidth}px`;
-                 editorPane.style.flexBasis = '';
+                 editorPane.style.flexBasis = ''; // Override flex-basis if setting width directly
                  displayPane.style.flexBasis = '';
              };
 
@@ -1172,7 +1215,7 @@
                  document.body.style.cursor = '';
                  document.body.style.userSelect = '';
                  if(resizerElement) resizerElement.classList.remove('resizing');
-                 saveContainerPosition();
+                 saveContainerPosition(); // Save widths after resize finishes
              };
 
              resizerElement.addEventListener('mousedown', (e) => {
@@ -1191,6 +1234,7 @@
                  e.preventDefault();
              });
 
+
             hideButton.addEventListener('mousedown', (e) => {
                  if (e.button !== 0) return;
                  e.stopPropagation();
@@ -1201,8 +1245,10 @@
                  const startX = e.clientX; const startY = e.clientY;
                  const buttonRect = hideButton.getBoundingClientRect();
                  const initialButtonLeft = buttonRect.left; const initialButtonTop = buttonRect.top;
-                 const containerRect = container.getBoundingClientRect();
+                 // Ensure container exists before getting its rect
+                 const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
                  const containerInitialLeft = containerRect.left; const containerInitialTop = containerRect.top;
+
 
                  const hideMoveHandler = (moveEvent) => {
                      const dx = Math.abs(moveEvent.clientX - startX);
@@ -1228,11 +1274,13 @@
                                 newTop = initialButtonTop + (moveEvent.clientY - startY);
                                 hideButton.style.left = `${newLeft}px`;
                                 hideButton.style.top = `${newTop}px`;
+                                // Also update container position if hidden and dragging button
                                 if(container) {
                                     container.style.left = `${containerInitialLeft + (moveEvent.clientX - startX)}px`;
                                     container.style.top = `${containerInitialTop + (moveEvent.clientY - startY)}px`;
                                 }
                             } else {
+                                // If not hidden, drag the whole container
                                 newLeft = containerInitialLeft + (moveEvent.clientX - startX);
                                 newTop = containerInitialTop + (moveEvent.clientY - startY);
                                 if(container) {
@@ -1260,12 +1308,14 @@
                          hideButtonDragged = true;
 
                          if (isHidden){
+                             // Save button's final viewport position if hidden
                              const finalRect = hideButton.getBoundingClientRect();
                              hideButtonLastViewportPos = { left: finalRect.left, top: finalRect.top };
+                             // No need to save container position directly here, it was updated during drag
                          }
-                         saveContainerPosition();
+                         saveContainerPosition(); // Save potentially updated container position
                          upEvent.preventDefault();
-                         upEvent.stopPropagation();
+                         upEvent.stopPropagation(); // Prevent click if dragging occurred
                      }
                  };
 
@@ -1273,11 +1323,15 @@
                  document.addEventListener('mouseup', hideUpHandler, { once: true, capture: true });
              });
 
+
              if ('ResizeObserver' in window) {
-                containerResizeObserver = new ResizeObserver(handleContainerResize);
-                containerResizeObserver.observe(container);
+                 // Check if container exists before observing
+                 if (container) {
+                    containerResizeObserver = new ResizeObserver(handleContainerResize);
+                    containerResizeObserver.observe(container);
+                 }
              } else {
-                 console.warn("ResizeObserver is not supported in this browser. External resize won't adjust internal panes proportionally.");
+                 // Removed console.warn, feature just won't be available
              }
 
             loadState();
@@ -1287,10 +1341,10 @@
             showTooltipHint();
 
         } catch (uiError) {
-            console.error("UI 初期化失敗:", uiError);
-            showErrorMessage("スクリプトUIの読み込みに失敗しました！");
+             // Keep user feedback
+            showErrorMessage("スクリプトUIの読み込みに失敗しました！ " + uiError.message);
             if (container && container.parentNode) container.remove();
-            container = null;
+            container = null; // Ensure container is nullified on error
             if (containerResizeObserver) {
                 containerResizeObserver.disconnect();
                 containerResizeObserver = null;
@@ -1298,49 +1352,60 @@
         }
     }
 
+
     let initRetryCount = 0; const MAX_INIT_RETRIES = 10;
     function runInitialization() {
+        // Check if UI already exists
         if (document.getElementById('ts-container-main')) {
-            initRetryCount = 0;
-            return;
+            initRetryCount = 0; // Reset count if UI is found
+            return; // Don't re-initialize
         }
+
+        // Check retry limit
         if (initRetryCount >= MAX_INIT_RETRIES) {
-            console.error("初期化がタイムアウトしました。");
+            // Removed console.error, show user message
             showErrorMessage("スクリプトの初期化がタイムアウトしました！ページを再読み込みしてみてください。");
-            initRetryCount = 0;
+            initRetryCount = 0; // Reset count
             return;
         }
 
+        // Check conditions for initialization
         const video = document.querySelector('video');
         const playerElement = document.getElementById('movie_player');
         const playerAPIReady = playerElement && typeof playerElement.getCurrentTime === 'function' && typeof playerElement.seekTo === 'function';
         const videoReady = video && typeof video.currentTime === 'number' && video.readyState >= 1;
 
+        // If conditions not met, retry later
         if (!videoReady || !playerAPIReady) {
              initRetryCount++;
-            setTimeout(runInitialization, 1500 + initRetryCount * 100);
+            setTimeout(runInitialization, 1500 + initRetryCount * 100); // Exponential backoff-like delay
             return;
         }
 
-        initRetryCount = 0;
+        // Conditions met, proceed with initialization
+        initRetryCount = 0; // Reset count on successful condition check
         try {
             initializeUI();
+            // Verify UI was added (optional sanity check)
             if (!document.getElementById('ts-container-main')) {
-                 console.error("初期化後、コンテナがDOMに正常に追加されませんでした！");
+                // Removed console.error, show user message
                 showErrorMessage("UIの追加に失敗しました。");
             }
         } catch (e) {
-            console.error("初期化中にエラーが発生しました:", e);
-            showErrorMessage("スクリプトの初期化に失敗しました！");
+             // Keep user feedback for initialization errors
+            showErrorMessage("スクリプトの初期化に失敗しました！ " + e.message);
         }
     }
+
 
     let lastUrl = location.href;
     const observerCallback = (mutationsList, observerInstance) => {
         const currentUrl = location.href;
+        // Check if URL actually changed and is a watch page
         if (currentUrl !== lastUrl) {
-            lastUrl = currentUrl;
+            lastUrl = currentUrl; // Update lastUrl immediately
 
+            // Cleanup previous instance state
             stopCurrentTimeUpdate();
             closeExistingContextMenu();
             if (editorChangeTimeout) clearTimeout(editorChangeTimeout);
@@ -1352,13 +1417,22 @@
             if (oldContainer) {
                 oldContainer.remove();
             }
+            // Reset all relevant state variables
             container = recordBtn = lockButton = hideButton = editorPane = displayPane = bulkEditor = displayListContainer = displayListElement = currentTimeDisplay = topBarElement = bottomBarElement = mainContentElement = resizerElement = null;
             timestamps = [];
             isDraggingContainer = false; isDraggingFromHideButton = false; hideButtonDragged = false; isResizingPanes = false;
-            initRetryCount = 0;
+            initRetryCount = 0; // Reset retry count for the new page
             sortState = null;
+            // Stop intervals/timeouts
+            if (currentTimeInterval) clearInterval(currentTimeInterval); currentTimeInterval = null;
+            if (resizeTimeout) clearTimeout(resizeTimeout); resizeTimeout = null;
+            if (rafDragId) cancelAnimationFrame(rafDragId); rafDragId = null;
+            if (rafModalDragId) cancelAnimationFrame(rafModalDragId); rafModalDragId = null;
 
+
+            // If the new URL is a watch page, schedule re-initialization
             if (currentUrl.includes('/watch?v=')) {
+                 // Use a reasonable delay to allow YouTube's SPA navigation to settle
                  setTimeout(runInitialization, 2000);
             }
         }
@@ -1369,7 +1443,8 @@
         observer = new MutationObserver(observerCallback);
         observer.observe(observeTargetNode, { childList: true, subtree: true });
      } else {
-        console.error("MutationObserver のターゲットが見つかりません！ URL変更時の自動再読み込みが機能しない可能性があります。");
+        // Keep user feedback if observer fails
+        showErrorMessage("MutationObserver のターゲットが見つかりません！ URL変更時の自動再読み込みが機能しない可能性があります。");
     }
 
     function showTooltipHint() {
@@ -1378,41 +1453,58 @@
             tooltip.id = 'ts-tooltip-hint';
             tooltip.className = 'ts-tooltip-hint';
             tooltip.textContent = 'ヒント: 左パネルで編集、右パネルでCtrl+クリックジャンプ / 右クリックメニュー';
-            document.body.appendChild(tooltip);
-            setTimeout(() => { tooltip.classList.add('visible'); }, 100);
-            setTimeout(() => {
-                if (!tooltip.parentNode) return;
-                tooltip.classList.remove('visible');
-                tooltip.addEventListener('transitionend', () => tooltip.remove(), { once: true });
-                setTimeout(() => { if (tooltip.parentNode) tooltip.remove(); }, 600);
-            }, 8000);
+             // Ensure body exists
+            if (document.body) {
+                 document.body.appendChild(tooltip);
+                 setTimeout(() => { tooltip.classList.add('visible'); }, 100);
+                 setTimeout(() => {
+                     if (!tooltip.parentNode) return;
+                     tooltip.classList.remove('visible');
+                     tooltip.addEventListener('transitionend', () => {if (tooltip.parentNode) tooltip.remove();}, { once: true });
+                     // Backup removal timer
+                     setTimeout(() => { if (tooltip.parentNode) tooltip.remove(); }, 600); // Shorter than message box
+                 }, 8000);
+            }
         }
     }
 
+
     function initialStart() {
+        // Ensure body is available before running initialization
         if (document.body) {
             runInitialization();
         } else {
+            // If body is somehow not ready, retry shortly
             setTimeout(initialStart, 100);
         }
     }
 
+    // --- Script Entry Point ---
+    // Check document readiness state
     if (document.readyState === 'interactive' || document.readyState === 'complete') {
-        initialStart();
+        initialStart(); // If already ready, start immediately
     } else {
+        // Otherwise, wait for the DOM to be ready
         document.addEventListener('DOMContentLoaded', initialStart, { once: true });
     }
 
+    // --- Cleanup on page unload ---
     window.addEventListener('beforeunload', () => {
         stopCurrentTimeUpdate();
-        if (observer) observer.disconnect();
+        if (observer) observer.disconnect(); observer = null; // Ensure observer is nullified
         if (containerResizeObserver) {
             containerResizeObserver.disconnect();
             containerResizeObserver = null;
         }
-        if (editorChangeTimeout) clearTimeout(editorChangeTimeout);
-        if (rafDragId) cancelAnimationFrame(rafDragId);
-        if (rafModalDragId) cancelAnimationFrame(rafModalDragId);
+        // Clear any pending timeouts/intervals/animation frames
+        if (editorChangeTimeout) clearTimeout(editorChangeTimeout); editorChangeTimeout = null;
+        if (currentTimeInterval) clearInterval(currentTimeInterval); currentTimeInterval = null;
+        if (resizeTimeout) clearTimeout(resizeTimeout); resizeTimeout = null;
+        if (rafDragId) cancelAnimationFrame(rafDragId); rafDragId = null;
+        if (rafModalDragId) cancelAnimationFrame(rafModalDragId); rafModalDragId = null;
+        if (messageTimeoutId) clearTimeout(messageTimeoutId); messageTimeoutId = null;
+        // Remove context menu listener if active
+        closeExistingContextMenu();
     });
 
 })();
