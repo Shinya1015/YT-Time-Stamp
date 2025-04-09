@@ -417,7 +417,7 @@
             mainContentElement = document.createElement("div"); mainContentElement.id = "ts-main-content";
             editorPane = document.createElement("div"); editorPane.id = "ts-editor-pane";
             const editorLabel = document.createElement("label"); editorLabel.setAttribute("for", "ts-bulk-editor"); editorLabel.textContent = "タイムスタンプ編集";
-            bulkEditor = document.createElement("textarea"); bulkEditor.id = "ts-bulk-editor"; bulkEditor.placeholder = "例:\n0:15:30 開始\n1:25:00 曲名 [01]\n...";
+            bulkEditor = document.createElement("textarea"); bulkEditor.id = "ts-bulk-editor"; bulkEditor.placeholder = "例:\n0:15:30 開始\n1:25:00 [01]曲名\n...";
             resizerElement = document.createElement("div"); resizerElement.id = "ts-pane-resizer";
             displayPane = document.createElement("div"); displayPane.id = "ts-display-pane";
             displayListContainer = document.createElement("div"); displayListContainer.className = "ts-display-list-container";
